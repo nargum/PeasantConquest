@@ -28,6 +28,7 @@ public class Tile {
 	}
 
 	public void draw(Canvas c){
-		c.drawBitmap(texture, x*TILE_SIZE, y*TILE_SIZE, null);
+		if(texture != null)
+			c.drawBitmap(texture, x*TILE_SIZE, y*TILE_SIZE, null);
 	}
 }

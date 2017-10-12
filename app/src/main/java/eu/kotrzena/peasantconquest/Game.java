@@ -11,9 +11,10 @@ public class Game {
 
 		tiles = new Tile[size_x][size_y];
 
+
 		for(int x = 0; x < size_x; x++){
 			for(int y = 0; y < size_y; y++){
-				tiles[x][y] = new Tile(x, y, Bitmaps.getBitmap(R.drawable.tile_grass1));
+				tiles[x][y] = new Tile(x, y, Assets.getBitmap(R.drawable.tile_grass1));
 			}
 		}
 	}
