@@ -19,6 +19,8 @@ public class Assets {
 	// Map tileset ids to resource ids
 	private static SparseArray<Integer> tilesetIds = new SparseArray<Integer>();
 
+	private static SparseArray<Byte> tilesRoads = new SparseArray<Byte>();
+
 	public static void init(Context context){
 		if(bitmaps.size() > 0)
 			return;
@@ -46,10 +48,28 @@ public class Assets {
 			while(eventType != XmlPullParser.END_DOCUMENT){
 				switch(eventType){
 					case XmlPullParser.START_TAG:
-						if(xml.getName() == "tile"){
+						if(xml.getName().equals("tile")){
 							tileId = Integer.parseInt(xml.getAttributeValue(null, "id"));
-						} else if(tileId != -1 && xml.getName() == "property" && xml.getAttributeValue(null, "name") == "resource"){
-							tilesetIds.append(tileId, Integer.parseInt(xml.getAttributeValue(null, "name")));
+							while(eventType != XmlPullParser.END_DOCUMENT){
+								eventType = xml.next();
+
+								if(eventType == XmlPullParser.START_TAG && xml.getName().equals("property")) {
+									if (xml.getAttributeValue(null, "name").equals("resource")) {
+										tilesetIds.append(
+												tileId,
+												context.getResources().getIdentifier(
+														xml.getAttributeValue(null, "value"),
+														"drawable",
+														context.getPackageName()
+												)
+										);
+									} else if (xml.getAttributeValue(null, "name").equals("roads")) {
+										tilesRoads.append(tileId, Byte.parseByte(xml.getAttributeValue(null, "value")));
+									}
+								} else if(eventType == XmlPullParser.END_TAG && xml.getName().equals("tile")){
+									break;
+								}
+							}
 						}
 						break;
 					case XmlPullParser.END_TAG:
@@ -63,6 +83,84 @@ public class Assets {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+
+	public static Game loadMap(int res_id){
+		XmlPullParser xml = context.getResources().getXml(res_id);
+
+		try {
+			int eventType = xml.getEventType();
+
+			Tile[][] tiles = null;
+			while(eventType != XmlPullParser.END_DOCUMENT){
+				switch(eventType){
+					case XmlPullParser.START_TAG:
+						if(xml.getName().equals("map")){
+							int size_x = Integer.parseInt(xml.getAttributeValue(null, "width"));
+							int size_y = Integer.parseInt(xml.getAttributeValue(null, "height"));
+							tiles = new Tile[size_x][size_y];
+							int tilesetOffset = 0;
+							int layerIndex = -1;
+							while(eventType != XmlPullParser.END_DOCUMENT){
+								eventType = xml.next();
+								if(eventType == XmlPullParser.END_TAG && xml.getName().equals("map")){
+									break;
+								}
+								if(eventType == XmlPullParser.START_TAG && xml.getName().equals("tileset")){
+									tilesetOffset = Integer.parseInt(xml.getAttributeValue(null, "firstgid"));
+								}
+								if(eventType == XmlPullParser.START_TAG && xml.getName().equals("layer")){
+									layerIndex++;
+									if(layerIndex != 0)
+										continue;
+									int tileIndex = -1;
+									while(eventType != XmlPullParser.END_DOCUMENT){
+										eventType = xml.next();
+										if(eventType == XmlPullParser.END_TAG && xml.getName().equals("layer")){
+											break;
+										}
+										if(eventType == XmlPullParser.START_TAG && xml.getName().equals("tile")){
+											tileIndex++;
+
+											int x = tileIndex%size_x;
+											int y = tileIndex/size_x;
+											String val = xml.getAttributeValue(null, "gid");
+											if(val == null)
+												continue;
+											int gid = Integer.parseInt(val);
+											Integer intVal = tilesetIds.get(gid - tilesetOffset);
+											if(intVal == null)
+												continue;
+											int bitmapId = intVal.intValue();
+											tiles[x][y] = new Tile(x, y, getBitmap(bitmapId));
+
+											Byte byteVal = tilesRoads.get(gid - tilesetOffset);
+											if(byteVal != null)
+												tiles[x][y].setRoads(tilesRoads.get(bitmapId, byteVal));
+										}
+									}
+								}
+							}
+						}
+						break;
+					case XmlPullParser.END_TAG:
+						if(xml.getName() == "map"){
+
+						}
+						break;
+				}
+				eventType = xml.next();
+			}
+			if(tiles != null)
+				return new Game(tiles);
+			else
+				return null;
+		} catch (XmlPullParserException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 
 	public static Bitmap getBitmap(int res_id){

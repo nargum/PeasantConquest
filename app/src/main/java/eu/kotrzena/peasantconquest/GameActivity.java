@@ -19,7 +19,7 @@ public class GameActivity extends AppCompatActivity {
 
 		Assets.init(this);
 
-		game = new Game();
+		game = Assets.loadMap(R.xml.mapa);
 
 		drawThread = new DrawThread(((SurfaceView)findViewById(R.id.gameView)).getHolder(), this);
 		drawThread.start();
@@ -30,8 +30,6 @@ public class GameActivity extends AppCompatActivity {
 		}
 
 		// -----------------
-
-		game = new Game();
 
 		gameView = (SurfaceView) findViewById(R.id.gameView);
 		gameView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE
