@@ -195,7 +195,7 @@ public class Game {
 		int pathI = (int)(army.position);
 		Point tileA;
 		Point tileB;
-		if(road.path == null || road.path.length == 0){
+		if(road.path.length == 0){
 			tileA = gameLogic.nodes[road.fromNode].position;
 			tileB = gameLogic.nodes[road.toNode].position;
 		} else if(pathI <= 0) {
@@ -211,7 +211,11 @@ public class Game {
 			tileA = road.path[pathI-1];
 			tileB = road.path[pathI];
 		}
-		float posInTile = army.position - (float)((int)army.position);
+		float posInTile;
+		if(army.position >= road.path.length + 1)
+			posInTile = 1;
+		else
+		posInTile = army.position - (float)((int)army.position);
 		return new PointF(
 				tileA.x + (tileB.x - tileA.x)*posInTile + 0.5f,
 				tileA.y + (tileB.y - tileA.y)*posInTile + 0.5f

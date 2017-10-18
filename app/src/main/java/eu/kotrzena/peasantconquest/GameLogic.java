@@ -1,6 +1,7 @@
 package eu.kotrzena.peasantconquest;
 
 import android.graphics.Point;
+import android.os.Debug;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.Pair;
@@ -32,7 +33,7 @@ public class GameLogic {
 		public int roadId;
 		public boolean backDirection;
 		public float position;
-		public LinkedList<Integer> nextRoadId;
+		public LinkedList<Integer> nextRoadId = new LinkedList<Integer>();
 	}
 
 	public Node[] nodes;
@@ -52,11 +53,11 @@ public class GameLogic {
 			class VisitedNode {
 				public int fromNode;
 				public int road;
-				public int lenght;
+				public int length;
 				public VisitedNode(int f, int r, int l){
 					fromNode = f;
 					road = r;
-					lenght = l;
+					length = l;
 				}
 			}
 			SparseArray<VisitedNode> visitedNodes = new SparseArray<>();
@@ -68,19 +69,23 @@ public class GameLogic {
 			while(!nodeQueue.isEmpty()){
 				int nodeId = nodeQueue.poll();
 				for(int ri = 0; ri < nodes[nodeId].roads.length; ri++){
+					int rIndex = nodes[nodeId].roads[ri];
 					int nextNode;
-					if(roads[ri].fromNode == nodeId)
-						nextNode = roads[ri].toNode;
+					if(roads[rIndex].fromNode == nodeId)
+						nextNode = roads[rIndex].toNode;
+					else if(roads[rIndex].toNode == nodeId)
+						nextNode = roads[rIndex].fromNode;
 					else
-						nextNode = roads[ri].fromNode;
+						continue;
 					VisitedNode visitedNode = visitedNodes.get(nextNode);
-					int length = visitedNodes.get(nodeId).lenght + roads[ri].path.length + 1;
+					int length = visitedNodes.get(nodeId).length + roads[rIndex].path.length + 1;
 					if(visitedNode == null){
-						visitedNode = new VisitedNode(nodeId, ri, length);
+						visitedNode = new VisitedNode(nodeId, rIndex, length);
+						visitedNodes.append(nextNode, visitedNode);
 						nodeQueue.add(nextNode);
 					} else {
-						if(visitedNode.lenght > length){
-							visitedNodes.setValueAt(nextNode, new VisitedNode(nodeId, ri, length));
+						if(visitedNode.length > length){
+							visitedNodes.setValueAt(nextNode, new VisitedNode(nodeId, rIndex, length));
 						}
 					}
 				}
@@ -93,11 +98,29 @@ public class GameLogic {
 			army = new Army();
 			while(toNodeData.fromNode != fromNode){
 				army.nextRoadId.push(toNodeData.road);
+				toNodeData = visitedNodes.get(toNodeData.fromNode);
 			}
 			army.roadId = toNodeData.road;
 
-			//TODO: Sestavit cestu ten for za tim je už zbytečný
+			Road road = roads[army.roadId];
+			if(road.toNode == fromNode) {
+				army.backDirection = true;
+				army.position = road.path.length + 1;
+			} else if(road.fromNode == fromNode) {
+				army.backDirection = false;
+				army.position = 0;
+			}
 
+			army.playerId = nodes[fromNode].playerId;
+			army.unitsCount = units;
+			armies.append(nextArmyId++, army);
+
+			nodes[fromNode].unitsCount -= units;
+
+			return nextArmyId - 1;
+
+			//TODO: Sestavit cestu ten for za tim je už zbytečný
+			/*
 			for (int ri = 0; ri < roads.length; ri++) {
 				Road road = roads[ri];
 				if(road.fromNode == toNode && road.toNode == fromNode) {
@@ -125,7 +148,7 @@ public class GameLogic {
 				nodes[fromNode].unitsCount -= units;
 
 				return nextArmyId - 1;
-			}
+			}*/
 		}
 		return -1;
 	}
@@ -138,7 +161,7 @@ public class GameLogic {
 					continue;
 				GameLogic.Army army2 = armies.valueAt(j);
 				if(army.roadId == army2.roadId && Math.abs(army.position - army2.position) < ARMY_SPEED) {
-					if(army.playerId == army2.playerId && army.backDirection == army.backDirection){
+					if(army.playerId == army2.playerId && army.backDirection == army2.backDirection){
 						//TODO: Smazat jednu armádu a jednotky nacpat do druhé
 					} else if(army.playerId != army2.playerId){
 						//TODO: Boj, počet jednotek změnit na float?
@@ -149,15 +172,39 @@ public class GameLogic {
 				if (army.position > 0)
 					army.position -= ARMY_SPEED;
 				else {
-					nodes[roads[army.roadId].fromNode].unitsCount += army.unitsCount;
-					armies.remove(armies.keyAt(i));
+					if(!army.nextRoadId.isEmpty()){
+						int nextRoad = army.nextRoadId.poll();
+						if(roads[nextRoad].fromNode == roads[army.roadId].fromNode) {
+							army.backDirection = false;
+							army.position = 0;
+						} else {
+							army.backDirection = true;
+							army.position = roads[nextRoad].path.length + 1;
+						}
+						army.roadId = nextRoad;
+					} else {
+						nodes[roads[army.roadId].fromNode].unitsCount += army.unitsCount;
+						armies.remove(armies.keyAt(i));
+					}
 				}
 			} else {
 				if (army.position < roads[army.roadId].path.length+1)
 					army.position += ARMY_SPEED;
 				else {
-					nodes[roads[army.roadId].toNode].unitsCount += army.unitsCount;
-					armies.remove(armies.keyAt(i));
+					if(!army.nextRoadId.isEmpty()){
+						int nextRoad = army.nextRoadId.poll();
+						if(roads[nextRoad].fromNode == roads[army.roadId].toNode) {
+							army.backDirection = false;
+							army.position = 0;
+						} else {
+							army.backDirection = true;
+							army.position = roads[nextRoad].path.length + 1;
+						}
+						army.roadId = nextRoad;
+					} else {
+						nodes[roads[army.roadId].toNode].unitsCount += army.unitsCount;
+						armies.remove(armies.keyAt(i));
+					}
 				}
 			}
 		}
