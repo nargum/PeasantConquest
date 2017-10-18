@@ -105,38 +105,98 @@ public class Assets {
 								eventType = xml.next();
 								if(eventType == XmlPullParser.END_TAG && xml.getName().equals("map")){
 									break;
-								}
-								if(eventType == XmlPullParser.START_TAG && xml.getName().equals("tileset")){
+								} else if(eventType == XmlPullParser.START_TAG && xml.getName().equals("tileset")){
 									tilesetOffset = Integer.parseInt(xml.getAttributeValue(null, "firstgid"));
-								}
-								if(eventType == XmlPullParser.START_TAG && xml.getName().equals("layer")){
+								} else if(eventType == XmlPullParser.START_TAG && xml.getName().equals("layer")){
 									layerIndex++;
-									if(layerIndex != 0)
-										continue;
-									int tileIndex = -1;
-									while(eventType != XmlPullParser.END_DOCUMENT){
-										eventType = xml.next();
-										if(eventType == XmlPullParser.END_TAG && xml.getName().equals("layer")){
+									switch(layerIndex){
+										case 0: {
+											int tileIndex = -1;
+											while(eventType != XmlPullParser.END_DOCUMENT){
+												eventType = xml.next();
+												if(eventType == XmlPullParser.END_TAG && xml.getName().equals("layer")){
+													break;
+												}
+												if(eventType == XmlPullParser.START_TAG && xml.getName().equals("tile")){
+													tileIndex++;
+
+													int x = tileIndex%size_x;
+													int y = tileIndex/size_x;
+													String val = xml.getAttributeValue(null, "gid");
+													if(val == null)
+														continue;
+													int gid = Integer.parseInt(val);
+													Integer intVal = tilesetIds.get(gid - tilesetOffset);
+													if(intVal == null)
+														continue;
+													int bitmapId = intVal.intValue();
+													tiles[x][y] = new Tile(x, y, getBitmap(bitmapId));
+
+													Byte byteVal = tilesRoads.get(gid - tilesetOffset);
+													if(byteVal != null)
+														tiles[x][y].setRoads(tilesRoads.get(bitmapId, byteVal));
+												}
+											}
 											break;
 										}
-										if(eventType == XmlPullParser.START_TAG && xml.getName().equals("tile")){
-											tileIndex++;
+										case 1: {
+											int tileIndex = -1;
+											while(eventType != XmlPullParser.END_DOCUMENT){
+												eventType = xml.next();
+												if(eventType == XmlPullParser.END_TAG && xml.getName().equals("layer")){
+													break;
+												}
+												if(eventType == XmlPullParser.START_TAG && xml.getName().equals("tile")){
+													tileIndex++;
 
-											int x = tileIndex%size_x;
-											int y = tileIndex/size_x;
-											String val = xml.getAttributeValue(null, "gid");
-											if(val == null)
-												continue;
-											int gid = Integer.parseInt(val);
-											Integer intVal = tilesetIds.get(gid - tilesetOffset);
-											if(intVal == null)
-												continue;
-											int bitmapId = intVal.intValue();
-											tiles[x][y] = new Tile(x, y, getBitmap(bitmapId));
+													int x = tileIndex%size_x;
+													int y = tileIndex/size_x;
+													String val = xml.getAttributeValue(null, "gid");
+													if(val == null)
+														continue;
+													int gid = Integer.parseInt(val);
+													Integer intVal = tilesetIds.get(gid - tilesetOffset);
+													if(intVal == null)
+														continue;
+													int bitmapId = intVal.intValue();
 
-											Byte byteVal = tilesRoads.get(gid - tilesetOffset);
-											if(byteVal != null)
-												tiles[x][y].setRoads(tilesRoads.get(bitmapId, byteVal));
+													switch(bitmapId){
+														case R.drawable.castle:
+															tiles[x][y].castle = true;
+															tiles[x][y].ownerOnStart = 0;
+															break;
+													}
+												}
+											}
+											break;
+										}
+									}
+								} else if(eventType == XmlPullParser.START_TAG && xml.getName().equals("objectgroup")){
+									while(eventType != XmlPullParser.END_DOCUMENT){
+										eventType = xml.next();
+										if(eventType == XmlPullParser.END_TAG && xml.getName().equals("objectgroup")){
+											break;
+										}
+										if(eventType == XmlPullParser.START_TAG && xml.getName().equals("object")){
+											float x = Float.parseFloat(xml.getAttributeValue(null, "x"));
+											float y = Float.parseFloat(xml.getAttributeValue(null, "y"));
+											if(xml.getAttributeValue(null, "gid") == null){
+												eventType = xml.next();
+												if(eventType == XmlPullParser.END_TAG && xml.getName().equals("objectgroup"))
+													break;
+												if(xml.getName().equals("text")){
+													eventType = xml.next();
+													if(eventType == XmlPullParser.END_TAG && xml.getName().equals("objectgroup"))
+														break;
+													if(eventType == XmlPullParser.TEXT) {
+														x /= Tile.TILE_SIZE;
+														y /= Tile.TILE_SIZE;
+														tiles[(int) x][(int) y].ownerOnStart = Integer.parseInt(xml.getText());
+													}
+												}
+											} else {
+												//TODO: Načíst okrasné objekty
+											}
 										}
 									}
 								}
