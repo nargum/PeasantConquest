@@ -18,7 +18,7 @@ public class GameLogic {
 
 	public class Node {
 		public int playerId;
-		public int unitsCount = 10;
+		public float unitsCount = 0;
 		public Point position;
 		public int roads[];
 	}
@@ -29,7 +29,7 @@ public class GameLogic {
 	}
 	public class Army {
 		public int playerId;
-		public int unitsCount;
+		public float unitsCount;
 		public int roadId;
 		public boolean backDirection;
 		public float position;
@@ -43,10 +43,9 @@ public class GameLogic {
 
 	public int sendArmy(int fromNode, int toNode, int units){
 		if(fromNode >= 0 && fromNode < nodes.length && toNode >= 0 && toNode < nodes.length && fromNode != toNode) {
-			if(nodes[fromNode].unitsCount < units)
+			if(nodes[fromNode].unitsCount < units || nodes[toNode].playerId == -1)
 				return -1;
 			Army army = null;
-			List<List<Integer>> paths = new LinkedList<List<Integer>>();
 
 			Queue<Integer> nodeQueue = new ConcurrentLinkedQueue<Integer>();
 			nodeQueue.add(fromNode);
@@ -68,27 +67,28 @@ public class GameLogic {
 
 			while(!nodeQueue.isEmpty()){
 				int nodeId = nodeQueue.poll();
-				for(int ri = 0; ri < nodes[nodeId].roads.length; ri++){
-					int rIndex = nodes[nodeId].roads[ri];
-					int nextNode;
-					if(roads[rIndex].fromNode == nodeId)
-						nextNode = roads[rIndex].toNode;
-					else if(roads[rIndex].toNode == nodeId)
-						nextNode = roads[rIndex].fromNode;
-					else
-						continue;
-					VisitedNode visitedNode = visitedNodes.get(nextNode);
-					int length = visitedNodes.get(nodeId).length + roads[rIndex].path.length + 1;
-					if(visitedNode == null){
-						visitedNode = new VisitedNode(nodeId, rIndex, length);
-						visitedNodes.append(nextNode, visitedNode);
-						nodeQueue.add(nextNode);
-					} else {
-						if(visitedNode.length > length){
-							visitedNodes.setValueAt(nextNode, new VisitedNode(nodeId, rIndex, length));
+				if(nodes[nodeId].playerId == nodes[fromNode].playerId || nodes[nodeId].playerId == -1)
+					for(int ri = 0; ri < nodes[nodeId].roads.length; ri++){
+						int rIndex = nodes[nodeId].roads[ri];
+						int nextNode;
+						if(roads[rIndex].fromNode == nodeId)
+							nextNode = roads[rIndex].toNode;
+						else if(roads[rIndex].toNode == nodeId)
+							nextNode = roads[rIndex].fromNode;
+						else
+							continue;
+						VisitedNode visitedNode = visitedNodes.get(nextNode);
+						int length = visitedNodes.get(nodeId).length + roads[rIndex].path.length + 1;
+						if(visitedNode == null){
+							visitedNode = new VisitedNode(nodeId, rIndex, length);
+							visitedNodes.append(nextNode, visitedNode);
+							nodeQueue.add(nextNode);
+						} else {
+							if(visitedNode.length > length){
+								visitedNodes.setValueAt(nextNode, new VisitedNode(nodeId, rIndex, length));
+							}
 						}
 					}
-				}
 			}
 
 			VisitedNode toNodeData = visitedNodes.get(toNode);
@@ -118,42 +118,18 @@ public class GameLogic {
 			nodes[fromNode].unitsCount -= units;
 
 			return nextArmyId - 1;
-
-			//TODO: Sestavit cestu ten for za tim je už zbytečný
-			/*
-			for (int ri = 0; ri < roads.length; ri++) {
-				Road road = roads[ri];
-				if(road.fromNode == toNode && road.toNode == fromNode) {
-					army = new Army();
-					army.roadId = ri;
-					army.backDirection = true;
-					army.position = road.path.length + 1;
-					break;
-				} else if(road.fromNode == fromNode && road.toNode == toNode) {
-					army = new Army();
-					army.roadId = ri;
-					army.backDirection = false;
-					army.position = 0;
-					break;
-				} else {
-
-					//TODO: Najít cestu když se jde přes další uzel
-				}
-			}
-			if(army != null){
-				army.playerId = nodes[fromNode].playerId;
-				army.unitsCount = units;
-				armies.append(nextArmyId++, army);
-
-				nodes[fromNode].unitsCount -= units;
-
-				return nextArmyId - 1;
-			}*/
 		}
 		return -1;
 	}
 
 	public void update(){
+		for(int i = 0; i < nodes.length; i++){
+			if(nodes[i].playerId > 0){
+				nodes[i].unitsCount += 0.005;
+			}
+		}
+
+		// Update armies
 		for(int i = 0; i < armies.size(); i++) {
 			GameLogic.Army army = armies.valueAt(i);
 			for(int j = 0; j < armies.size(); j++) {
@@ -185,6 +161,7 @@ public class GameLogic {
 					} else {
 						nodes[roads[army.roadId].fromNode].unitsCount += army.unitsCount;
 						armies.remove(armies.keyAt(i));
+						//TODO: Útok na město
 					}
 				}
 			} else {
