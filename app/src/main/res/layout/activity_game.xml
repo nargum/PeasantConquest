@@ -2,7 +2,7 @@
              xmlns:tools="http://schemas.android.com/tools"
              android:layout_width="match_parent"
              android:layout_height="match_parent"
-             android:background="#0099cc"
+             android:background="#000000"
              tools:context="eu.kotrzena.peasantconquest.GameActivity">
 
     <!-- The primary full-screen view. This can be replaced with whatever view
@@ -12,9 +12,26 @@
     <!-- This FrameLayout insets its children based on system windows using
          android:fitsSystemWindows. -->
 
-    <SurfaceView
-        android:id="@+id/gameView"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        />
+        android:orientation="vertical">
+
+        <SurfaceView
+            android:id="@+id/gameView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1"/>
+
+        <SeekBar
+            android:id="@+id/unitSlider"
+            style="@android:style/Widget.Material.SeekBar"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:max="100"
+            android:min="0"
+            android:minHeight="179dp"
+            android:progress="50"/>
+    </LinearLayout>
+
 </FrameLayout>

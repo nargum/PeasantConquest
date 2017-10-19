@@ -15,6 +15,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class GameLogic {
 	public static final float ARMY_SPEED = 0.02f;
+	public static final float ARMY_DAMAGE = 0.01f;
 
 	public class Node {
 		public int playerId;
@@ -41,8 +42,9 @@ public class GameLogic {
 	public SparseArray<Army> armies = new SparseArray<Army>();
 	public int nextArmyId = 0;
 
-	public int sendArmy(int fromNode, int toNode, int units){
+	public int sendArmy(int fromNode, int toNode, float unitsPct){
 		if(fromNode >= 0 && fromNode < nodes.length && toNode >= 0 && toNode < nodes.length && fromNode != toNode) {
+			int units = (int)(unitsPct*nodes[fromNode].unitsCount);
 			if(nodes[fromNode].unitsCount < units || nodes[toNode].playerId == -1)
 				return -1;
 			Army army = null;
@@ -132,55 +134,65 @@ public class GameLogic {
 		// Update armies
 		for(int i = 0; i < armies.size(); i++) {
 			GameLogic.Army army = armies.valueAt(i);
+			boolean move = true;
 			for(int j = 0; j < armies.size(); j++) {
 				if(i == j)
 					continue;
 				GameLogic.Army army2 = armies.valueAt(j);
-				if(army.roadId == army2.roadId && Math.abs(army.position - army2.position) < ARMY_SPEED) {
+				if(army.roadId == army2.roadId && Math.abs(army.position - army2.position) < 2*ARMY_SPEED) {
 					if(army.playerId == army2.playerId && army.backDirection == army2.backDirection){
-						//TODO: Smazat jednu armádu a jednotky nacpat do druhé
+						// Armies join
+						army.unitsCount += army2.unitsCount;
+						armies.delete(armies.keyAt(j));
 					} else if(army.playerId != army2.playerId){
-						//TODO: Boj, počet jednotek změnit na float?
+						// Armies fight
+						army2.unitsCount -= ARMY_DAMAGE;
+						move = false;
+						if(army.unitsCount < 1)
+							armies.delete(armies.keyAt(i));
+						if(army2.unitsCount < 1)
+							armies.delete(armies.keyAt(j));
 					}
 				}
 			}
-			if(army.backDirection) {
-				if (army.position > 0)
+			if(army.backDirection && army.position > 0) {
+				if(move)
 					army.position -= ARMY_SPEED;
-				else {
-					if(!army.nextRoadId.isEmpty()){
-						int nextRoad = army.nextRoadId.poll();
-						if(roads[nextRoad].fromNode == roads[army.roadId].fromNode) {
-							army.backDirection = false;
-							army.position = 0;
-						} else {
-							army.backDirection = true;
-							army.position = roads[nextRoad].path.length + 1;
-						}
-						army.roadId = nextRoad;
-					} else {
-						nodes[roads[army.roadId].fromNode].unitsCount += army.unitsCount;
-						armies.remove(armies.keyAt(i));
-						//TODO: Útok na město
-					}
-				}
-			} else {
-				if (army.position < roads[army.roadId].path.length+1)
+			} else if(!army.backDirection && army.position < roads[army.roadId].path.length+1){
+				if(move)
 					army.position += ARMY_SPEED;
-				else {
-					if(!army.nextRoadId.isEmpty()){
-						int nextRoad = army.nextRoadId.poll();
-						if(roads[nextRoad].fromNode == roads[army.roadId].toNode) {
-							army.backDirection = false;
-							army.position = 0;
-						} else {
-							army.backDirection = true;
-							army.position = roads[nextRoad].path.length + 1;
-						}
-						army.roadId = nextRoad;
+			} else {
+				// At the end of the road
+				int targetNodeId = (army.backDirection? roads[army.roadId].fromNode : roads[army.roadId].toNode);
+				if(!army.nextRoadId.isEmpty()){
+					// Next road
+					int nextRoad = army.nextRoadId.poll();
+					if(roads[nextRoad].fromNode == targetNodeId) {
+						army.backDirection = false;
+						army.position = 0;
 					} else {
-						nodes[roads[army.roadId].toNode].unitsCount += army.unitsCount;
+						army.backDirection = true;
+						army.position = roads[nextRoad].path.length + 1;
+					}
+					army.roadId = nextRoad;
+				} else {
+					// At the target
+					Node targetNode = nodes[targetNodeId];
+					if(army.playerId == targetNode.playerId) {
+						// Join with city
+						targetNode.unitsCount += army.unitsCount;
 						armies.remove(armies.keyAt(i));
+					} else {
+						// Attack city
+						army.unitsCount -= ARMY_DAMAGE;
+						targetNode.unitsCount -= ARMY_DAMAGE;
+						if (army.unitsCount < 1)
+							armies.remove(armies.keyAt(i));
+						else if(targetNode.unitsCount < 1){
+							targetNode.playerId = army.playerId;
+							targetNode.unitsCount += army.unitsCount;
+							armies.remove(armies.keyAt(i));
+						}
 					}
 				}
 			}

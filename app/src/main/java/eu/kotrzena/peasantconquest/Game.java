@@ -5,6 +5,8 @@ import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.PointF;
 import android.view.MotionEvent;
+import android.view.View;
+import android.widget.SeekBar;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,7 +19,16 @@ public class Game {
 	private int size_x;
 	private int size_y;
 
+	private int playAreaTop;
+	private int playAreaBottom;
+	private int playAreaLeft;
+	private int playAreaRight;
+
+	private float scale = 1.2f;
+	private PointF offset = new PointF(-20, 50);
+
 	private int motionEventStartNode = -1;
+	private float takeUnitsPct = 0;
 
 	private HashMap<Point, Integer> tileOwner = null;
 
@@ -27,6 +38,9 @@ public class Game {
 
 		tiles = new Tile[size_x][size_y];
 
+		playAreaLeft = playAreaTop = 0;
+		playAreaRight = size_x - 1;
+		playAreaBottom = size_y -1;
 
 		for(int x = 0; x < size_x; x++){
 			for(int y = 0; y < size_y; y++){
@@ -43,7 +57,36 @@ public class Game {
 
 		this.tiles = tiles;
 
+		playAreaRight = playAreaBottom = 0;
+		playAreaLeft = size_x - 1;
+		playAreaTop = size_y -1;
+
+		for(int x = 0; x < size_x; x++){
+			for(int y = 0; y < size_y; y++){
+				if(tiles[x][y].getRoads() != 0){
+					if(playAreaLeft > x)
+						playAreaLeft = x;
+					if(playAreaRight < x)
+						playAreaRight = x;
+					if(playAreaTop > y)
+						playAreaTop = y;
+					if(playAreaBottom < y)
+						playAreaBottom = y;
+				}
+			}
+		}
+
 		prepareLogic();
+	}
+
+	public void fitDisplay(View view){
+		offset.x = -playAreaLeft * Tile.TILE_SIZE;
+		offset.y = -playAreaTop * Tile.TILE_SIZE;
+
+		float scalex = ((float)view.getWidth()) / ((float)(playAreaRight-playAreaLeft+1) * Tile.TILE_SIZE);
+		float scaley = ((float)view.getHeight()) / ((float)(playAreaBottom-playAreaTop+1) * Tile.TILE_SIZE);
+
+		scale = (scalex > scaley)? scaley : scalex;
 	}
 
 	private void prepareLogic(){
@@ -125,20 +168,6 @@ public class Game {
 					road.path = new Point[path.size()];
 					road.path = path.toArray(road.path);
 
-					/*for(int ri = 0; ri < gameLogic.nodes[road.fromNode].roads.length; ri++){
-						if(gameLogic.nodes[road.fromNode].roads[ri] != -1){
-							gameLogic.nodes[road.fromNode].roads[ri] = roads.size();
-							break;
-						}
-					}
-
-					for(int ri = 0; ri < gameLogic.nodes[road.toNode].roads.length; ri++){
-						if(gameLogic.nodes[road.toNode].roads[ri] != -1){
-							gameLogic.nodes[road.toNode].roads[ri] = roads.size();
-							break;
-						}
-					}*/
-
 					GameLogic.Node n = gameLogic.nodes[road.fromNode];
 					for(int ri = 0; ri < n.roads.length; ri++){
 						if(n.roads[ri] == -1){
@@ -163,6 +192,10 @@ public class Game {
 	}
 
 	public Point getTouchTile(float x, float y){
+		x /= scale;
+		y /= scale;
+		x -= offset.x;
+		y -= offset.y;
 		return new Point((int)(x/Tile.TILE_SIZE), (int)(y/Tile.TILE_SIZE));
 	}
 
@@ -181,13 +214,17 @@ public class Game {
 					if(p.x < size_x && p.y < size_y) {
 						int ni = tiles[p.x][p.y].nodeId;
 						if(ni != -1) {
-							gameLogic.sendArmy(motionEventStartNode, ni, 1);
+							gameLogic.sendArmy(motionEventStartNode, ni, takeUnitsPct);
 						}
 					}
 				}
 				motionEventStartNode = -1;
 				break;
 		}
+	}
+
+	public void onUnitSliderChange(SeekBar seekBar){
+		takeUnitsPct = ((float)seekBar.getProgress()) / ((float)seekBar.getMax());
 	}
 
 	public PointF getArmyPosition(GameLogic.Army army){
@@ -227,6 +264,8 @@ public class Game {
 	}
 
 	public void draw(Canvas c){
+		c.scale(scale, scale);
+		c.translate(offset.x, offset.y);
 		for(Tile[] tRow : tiles){
 			for(Tile tile : tRow){
 				if(tile != null)
@@ -245,6 +284,7 @@ public class Game {
 		paint.setTextSize(20);
 
 		// Nodes
+		paint.setTextAlign(Paint.Align.LEFT);
 		for(GameLogic.Node n : gameLogic.nodes) {
 			c.drawText(Integer.toString(n.playerId), n.position.x * Tile.TILE_SIZE, n.position.y * Tile.TILE_SIZE, paint);
 			c.drawCircle(
@@ -252,7 +292,7 @@ public class Game {
 				Tile.TILE_SIZE / 2,
 				paint
 			);
-			c.drawText(Integer.toString(n.unitsCount), n.position.x * Tile.TILE_SIZE + Tile.TILE_SIZE / 2, n.position.y * Tile.TILE_SIZE + Tile.TILE_SIZE / 2, paint);
+			c.drawText(Integer.toString((int)n.unitsCount), n.position.x * Tile.TILE_SIZE + Tile.TILE_SIZE / 2, n.position.y * Tile.TILE_SIZE + Tile.TILE_SIZE / 2, paint);
 		}
 
 		// Roads
@@ -278,13 +318,14 @@ public class Game {
 			}
 
 		// Armies
+		paint.setTextAlign(Paint.Align.RIGHT);
 		for(int i = 0; i < gameLogic.armies.size(); i++) {
 			GameLogic.Army army = gameLogic.armies.valueAt(i);
 			PointF pos = getArmyPosition(army);
 			pos.x *= Tile.TILE_SIZE;
 			pos.y *= Tile.TILE_SIZE;
 			c.drawCircle(pos.x, pos.y, 5, paint);
-			c.drawText(Integer.toString(army.unitsCount), pos.x, pos.y, paint);
+			c.drawText(Integer.toString((int)army.unitsCount), pos.x, pos.y, paint);
 		}
 	}
 }
