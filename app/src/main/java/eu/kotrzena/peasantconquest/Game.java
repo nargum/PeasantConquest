@@ -9,11 +9,14 @@ import android.view.View;
 import android.widget.SeekBar;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Stack;
 
 public class Game {
 	private Tile[][] tiles;
+	private LinkedList<Entity> entities = new LinkedList<Entity>();
 	private GameLogic gameLogic;
 
 	private int size_x;
@@ -271,6 +274,19 @@ public class Game {
 				if(tile != null)
 					tile.draw(c);
 			}
+		}
+		InsertionSort.sort(entities, new Comparator<Entity>() {
+			@Override
+			public int compare(Entity o, Entity t1) {
+				if(o.position.y > t1.position.y){
+					return 1;
+				} else {
+					return -1;
+				}
+			}
+		});
+		for(Entity e : entities){
+			e.draw(c);
 		}
 		debugDraw(c);
 	}
