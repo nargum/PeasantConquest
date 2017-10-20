@@ -1,4 +1,4 @@
-package eu.kotrzena.peasantconquest;
+package eu.kotrzena.peasantconquest.game;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;

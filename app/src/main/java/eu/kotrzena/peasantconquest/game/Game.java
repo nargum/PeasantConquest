@@ -1,6 +1,7 @@
-package eu.kotrzena.peasantconquest;
+package eu.kotrzena.peasantconquest.game;
 
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.PointF;
@@ -12,12 +13,17 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Stack;
 
+import eu.kotrzena.peasantconquest.R;
+
 public class Game {
+	private static Game game = null;
 	private Tile[][] tiles;
 	private LinkedList<Entity> entities = new LinkedList<Entity>();
-	private GameLogic gameLogic;
+	ArrayList<PlayerInfo> players = new ArrayList<PlayerInfo>();
+	GameLogic gameLogic;
 
 	private int size_x;
 	private int size_y;
@@ -36,6 +42,7 @@ public class Game {
 	private HashMap<Point, Integer> tileOwner = null;
 
 	public Game(){
+		Game.game = this;
 		size_x = 5;
 		size_y = 5;
 
@@ -54,11 +61,13 @@ public class Game {
 		prepareLogic();
 	}
 
-	public Game(Tile[][] tiles){
+	public Game(Tile[][] tiles, List<Entity> entities){
+		Game.game = this;
 		size_x = tiles.length;
 		size_y = tiles[0].length;
 
 		this.tiles = tiles;
+		this.entities.addAll(entities);
 
 		playAreaRight = playAreaBottom = 0;
 		playAreaLeft = size_x - 1;
@@ -82,6 +91,10 @@ public class Game {
 		prepareLogic();
 	}
 
+	public static Game getGame(){
+		return game;
+	}
+
 	public void fitDisplay(View view){
 		offset.x = -playAreaLeft * Tile.TILE_SIZE;
 		offset.y = -playAreaTop * Tile.TILE_SIZE;
@@ -93,6 +106,11 @@ public class Game {
 	}
 
 	private void prepareLogic(){
+		PlayerInfo pi = new PlayerInfo(1, 0xffa6583c);
+		players.add(pi);
+		pi = new PlayerInfo(2, 0xff157da8);
+		players.add(pi);
+
 		gameLogic = new GameLogic();
 
 		// Find nodes
@@ -107,7 +125,7 @@ public class Game {
 					roadsCount += (byte) (((roads & Tile.ROAD_S) != 0) ? 1 : 0);
 					roadsCount += (byte) (((roads & Tile.ROAD_W) != 0) ? 1 : 0);
 					roadsCount += (byte) (((roads & Tile.ROAD_E) != 0) ? 1 : 0);
-					if ((roadsCount != 2 && roadsCount != 0) || tile.castle) {
+					if ((roadsCount != 2 && roadsCount != 0) || tile.castle != null) {
 						GameLogic.Node node = gameLogic.new Node();
 						node.position = new Point(x, y);
 						node.roads = new int[roadsCount];

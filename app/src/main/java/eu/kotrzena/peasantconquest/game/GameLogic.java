@@ -1,15 +1,9 @@
-package eu.kotrzena.peasantconquest;
+package eu.kotrzena.peasantconquest.game;
 
 import android.graphics.Point;
-import android.os.Debug;
-import android.os.Parcel;
-import android.os.Parcelable;
-import android.util.Pair;
 import android.util.SparseArray;
 
-import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 

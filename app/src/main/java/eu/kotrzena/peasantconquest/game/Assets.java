@@ -1,8 +1,10 @@
-package eu.kotrzena.peasantconquest;
+package eu.kotrzena.peasantconquest.game;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.util.SparseArray;
 
@@ -11,10 +13,14 @@ import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.util.LinkedList;
+
+import eu.kotrzena.peasantconquest.R;
 
 public class Assets {
 	private static Context context;
 	private static SparseArray<Bitmap> bitmaps = new SparseArray<Bitmap>();
+	private static SparseArray<Bitmap> colorLayerBitmaps = new SparseArray<Bitmap>();
 
 	// Map tileset ids to resource ids
 	private static SparseArray<Integer> tilesetIds = new SparseArray<Integer>();
@@ -55,14 +61,24 @@ public class Assets {
 
 								if(eventType == XmlPullParser.START_TAG && xml.getName().equals("property")) {
 									if (xml.getAttributeValue(null, "name").equals("resource")) {
-										tilesetIds.append(
-												tileId,
-												context.getResources().getIdentifier(
-														xml.getAttributeValue(null, "value"),
-														"drawable",
-														context.getPackageName()
-												)
+										int resId = context.getResources().getIdentifier(
+											xml.getAttributeValue(null, "value"),
+											"drawable",
+											context.getPackageName()
 										);
+										if(resId != 0) {
+											tilesetIds.append(tileId, resId);
+											int colorResId = context.getResources().getIdentifier(
+												xml.getAttributeValue(null, "value")+"_color",
+												"drawable",
+												context.getPackageName()
+											);
+											if(colorResId != 0) {
+												Bitmap colorBitmap = bitmaps.get(colorResId);
+												if(colorBitmap != null)
+													colorLayerBitmaps.append(resId, colorBitmap);
+											}
+										}
 									} else if (xml.getAttributeValue(null, "name").equals("roads")) {
 										tilesRoads.append(tileId, Byte.parseByte(xml.getAttributeValue(null, "value")));
 									}
@@ -92,12 +108,14 @@ public class Assets {
 			int eventType = xml.getEventType();
 
 			Tile[][] tiles = null;
+			LinkedList<Entity> entities = new LinkedList<Entity>();
 			while(eventType != XmlPullParser.END_DOCUMENT){
 				switch(eventType){
 					case XmlPullParser.START_TAG:
 						if(xml.getName().equals("map")){
 							int size_x = Integer.parseInt(xml.getAttributeValue(null, "width"));
 							int size_y = Integer.parseInt(xml.getAttributeValue(null, "height"));
+							int mapTileSize = Integer.parseInt(xml.getAttributeValue(null, "tilewidth"));
 							tiles = new Tile[size_x][size_y];
 							int tilesetOffset = 0;
 							int layerIndex = -1;
@@ -129,7 +147,7 @@ public class Assets {
 													Integer intVal = tilesetIds.get(gid - tilesetOffset);
 													if(intVal == null)
 														continue;
-													int bitmapId = intVal.intValue();
+													int bitmapId = intVal;
 													tiles[x][y] = new Tile(x, y, getBitmap(bitmapId));
 
 													Byte byteVal = tilesRoads.get(gid - tilesetOffset);
@@ -158,13 +176,20 @@ public class Assets {
 													Integer intVal = tilesetIds.get(gid - tilesetOffset);
 													if(intVal == null)
 														continue;
-													int bitmapId = intVal.intValue();
+													int bitmapId = intVal;
 
 													switch(bitmapId){
-														case R.drawable.castle:
-															tiles[x][y].castle = true;
+														case R.drawable.castle: {
+															PlayerCity e = new PlayerCity();
+															e.position.set(x + 0.5f, y + 1f);
+															e.texture = getBitmap(bitmapId);
+															e.colorLayer = getColorLayerBitmap(bitmapId);
+															e.tile = tiles[x][y];
+															entities.add(e);
+															tiles[x][y].castle = e;
 															tiles[x][y].ownerOnStart = 0;
 															break;
+														}
 													}
 												}
 											}
@@ -180,7 +205,10 @@ public class Assets {
 										if(eventType == XmlPullParser.START_TAG && xml.getName().equals("object")){
 											float x = Float.parseFloat(xml.getAttributeValue(null, "x"));
 											float y = Float.parseFloat(xml.getAttributeValue(null, "y"));
-											if(xml.getAttributeValue(null, "gid") == null){
+											x /= mapTileSize;
+											y /= mapTileSize;
+											String gidAttr = xml.getAttributeValue(null, "gid");
+											if(gidAttr == null){
 												eventType = xml.next();
 												if(eventType == XmlPullParser.END_TAG && xml.getName().equals("objectgroup"))
 													break;
@@ -189,13 +217,19 @@ public class Assets {
 													if(eventType == XmlPullParser.END_TAG && xml.getName().equals("objectgroup"))
 														break;
 													if(eventType == XmlPullParser.TEXT) {
-														x /= Tile.TILE_SIZE;
-														y /= Tile.TILE_SIZE;
 														tiles[(int) x][(int) y].ownerOnStart = Integer.parseInt(xml.getText());
 													}
 												}
 											} else {
-												//TODO: Načíst okrasné objekty
+												int gid = Integer.parseInt(gidAttr);
+												Integer intVal = tilesetIds.get(gid - tilesetOffset);
+												if(intVal == null)
+													continue;
+												int bitmapId = intVal;
+												Entity e = new Entity();
+												e.position.set(x, y);
+												e.texture = getBitmap(bitmapId);
+												entities.add(e);
 											}
 										}
 									}
@@ -212,19 +246,35 @@ public class Assets {
 				eventType = xml.next();
 			}
 			if(tiles != null)
-				return new Game(tiles);
+				return new Game(tiles, entities);
 			else
 				return null;
 		} catch (XmlPullParserException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
+		} catch (NumberFormatException e){
+			e.printStackTrace();
 		}
+		AlertDialog alertDialog = new AlertDialog.Builder(context).create();
+		alertDialog.setTitle(R.string.error);
+		alertDialog.setMessage(context.getString(R.string.map_load_fail));
+		alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, context.getString(R.string.ok),
+				new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int which) {
+						dialog.dismiss();
+					}
+				});
+		alertDialog.show();
 		return null;
 	}
 
 	public static Bitmap getBitmap(int res_id){
 		return bitmaps.get(res_id);
+	}
+
+	public static Bitmap getColorLayerBitmap(int res_id){
+		return colorLayerBitmaps.get(res_id);
 	}
 
 	public static Bitmap getBitmap(String res_id){

@@ -1,6 +1,13 @@
 <resources>
-    <string name="app_name">PeasantConquest</string>
+	<string name="app_name">PeasantConquest</string>
 
-    <string name="dummy_button">Dummy Button</string>
-    <string name="dummy_content">DUMMY\nCONTENT</string>
+	<string name="dummy_button">Dummy Button</string>
+	<string name="dummy_content">DUMMY\nCONTENT</string>
+
+	<string name="error">Error</string>
+	<string name="ok">OK</string>
+	<string name="map_load_fail">Failed to load map</string>
+
+	<string name="start_game">Start Game</string>
+	<string name="join_game">Join Game</string>
 </resources>

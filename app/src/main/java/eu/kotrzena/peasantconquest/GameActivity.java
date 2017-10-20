@@ -1,8 +1,6 @@
 package eu.kotrzena.peasantconquest;
 
-import android.graphics.Point;
 import android.os.Build;
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.MotionEvent;
@@ -10,6 +8,9 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.SeekBar;
+
+import eu.kotrzena.peasantconquest.game.Assets;
+import eu.kotrzena.peasantconquest.game.Game;
 
 public class GameActivity extends AppCompatActivity {
 	public SurfaceView gameView = null;

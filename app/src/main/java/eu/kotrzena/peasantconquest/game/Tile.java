@@ -1,4 +1,4 @@
-package eu.kotrzena.peasantconquest;
+package eu.kotrzena.peasantconquest.game;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -22,7 +22,7 @@ public class Tile {
 	private Point position;
 	int nodeId = -1;
 
-	boolean castle = false;
+	PlayerCity castle = null;
 	int ownerOnStart = -1;
 
 	public Tile(int x, int y, Bitmap texture){
