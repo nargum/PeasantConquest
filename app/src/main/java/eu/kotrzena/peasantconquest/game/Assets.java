@@ -101,9 +101,7 @@ public class Assets {
 		}
 	}
 
-	public static Game loadMap(int res_id){
-		XmlPullParser xml = context.getResources().getXml(res_id);
-
+	public static Game loadMap(XmlPullParser xml){
 		try {
 			int eventType = xml.getEventType();
 

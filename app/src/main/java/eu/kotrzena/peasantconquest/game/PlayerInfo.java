@@ -9,10 +9,16 @@ import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 
+import java.net.InetAddress;
+import java.net.Socket;
+
 public class PlayerInfo {
 	public final int id;
 	public final int color;
 	public final Paint colorFilter;
+	public boolean isHost = false;
+	public InetAddress address = null;
+	public Socket socket = null;
 
 	public PlayerInfo(int id, int color){
 		this.id = id;

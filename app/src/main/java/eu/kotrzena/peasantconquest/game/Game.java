@@ -362,4 +362,8 @@ public class Game {
 			c.drawText(Integer.toString((int)army.unitsCount), pos.x, pos.y, paint);
 		}
 	}
+
+	public ArrayList<PlayerInfo> getPlayers() {
+		return players;
+	}
 }
