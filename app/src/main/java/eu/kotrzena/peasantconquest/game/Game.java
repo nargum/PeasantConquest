@@ -25,6 +25,8 @@ public class Game {
 	ArrayList<PlayerInfo> players = new ArrayList<PlayerInfo>();
 	GameLogic gameLogic;
 
+	public boolean pause = true;
+
 	private int size_x;
 	private int size_y;
 
@@ -110,6 +112,7 @@ public class Game {
 		players.add(pi);
 		pi = new PlayerInfo(2, 0xff157da8);
 		players.add(pi);
+		//TODO: Vytvořit hráče podle mapy
 
 		gameLogic = new GameLogic();
 

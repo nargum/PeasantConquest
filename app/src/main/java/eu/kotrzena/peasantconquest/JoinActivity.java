@@ -139,16 +139,10 @@ public class JoinActivity extends AppCompatActivity {
 									if(dis.readShort() == Networking.INDENTIFIER) {
 										byte messageType = dis.readByte();
 										if (messageType == Networking.MessageType.SERVER_SCAN_RESPONSE) {
+											Networking.ServerScanResponse ssr = new Networking.ServerScanResponse(dis);
 											ServerEntry se = new ServerEntry();
 											se.ipAddress = packet.getAddress();
-											StringBuilder map = new StringBuilder();
-											while(true){
-												char c = dis.readChar();
-												if(c == '\0')
-													break;
-												map.append(c);
-											}
-											se.map = map.toString();
+											se.map = ssr.mapName;
 											servers.add(se);
 											JoinActivity.this.runOnUiThread(new Runnable() {
 												@Override

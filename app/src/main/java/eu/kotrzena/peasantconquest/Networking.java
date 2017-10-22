@@ -5,6 +5,8 @@ import android.net.DhcpInfo;
 import android.net.wifi.WifiManager;
 import android.os.Parcel;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
@@ -24,19 +26,86 @@ class Networking {
 		*  String mapName
 		* */
 		static final byte JOIN = 3;
+		static final byte JOIN_ACCEPT = 4;
+		static final byte JOIN_REFUSE = 5;
+		static final byte READY = 6;
+	}
+	interface Message {
+		void write(DataOutputStream out) throws IOException;
+	}
+	static class ServerScanResponse implements Message {
+		public static final byte messageType = MessageType.SERVER_SCAN_RESPONSE;
+		public String mapName;
+		public ServerScanResponse(String mapName){
+			this.mapName = mapName;
+		}
+		public ServerScanResponse(DataInputStream in) throws IOException {
+			mapName = readString(in);
+		}
+		public void write(DataOutputStream out) throws IOException {
+			out.writeByte(messageType);
+			writeString(out, mapName);
+			out.writeByte(0);
+			out.flush();
+		}
+	}
+	static class JoinAccept implements Message {
+		public static final byte messageType = MessageType.JOIN_ACCEPT;
+		public int mapId;
+		public int playerId;
+		public JoinAccept(int mapId, int playerId){
+			this.mapId = mapId;
+			this.playerId = playerId;
+		}
+		public JoinAccept(DataInputStream in) throws IOException {
+			mapId = in.readInt();
+			playerId = in.readInt();
+		}
+		public void write(DataOutputStream out) throws IOException {
+			out.writeByte(messageType);
+			out.writeInt(mapId);
+			out.writeInt(playerId);
+			out.writeByte(0);
+			out.flush();
+		}
+	}
+	static class JoinRefuse implements Message {
+		public static final byte messageType = MessageType.JOIN_REFUSE;
+		public int reasonStringId;
+		public JoinRefuse(int reasonStringId){
+			this.reasonStringId = reasonStringId;
+		}
+		public JoinRefuse(DataInputStream in) throws IOException {
+			reasonStringId = in.readInt();
+		}
+		public void write(DataOutputStream out) throws IOException {
+			out.writeByte(messageType);
+			out.writeInt(reasonStringId);
+			out.writeByte(0);
+			out.flush();
+		}
 	}
 
-	/*static InetAddress getBroadcastAddress(Context context) throws IOException {
-		WifiManager wifi = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-		DhcpInfo dhcp = wifi.getDhcpInfo();
-		// handle null somehow
+	public static void writeString(DataOutputStream out, String str) throws IOException {
+		for(int i = 0; i < str.length(); i++){
+			char c = str.charAt(i);
+			if(c == '\0')
+				c = ' ';
+			out.writeChar(c);
+		}
+		out.writeChar('\0');
+	}
 
-		int broadcast = (dhcp.ipAddress & dhcp.netmask) | ~dhcp.netmask;
-		byte[] quads = new byte[4];
-		for (int k = 0; k < 4; k++)
-			quads[k] = (byte) (broadcast >> (k * 8));
-		return InetAddress.getByAddress(quads);
-	}*/
+	public static String readString(DataInputStream in) throws IOException {
+		StringBuilder str = new StringBuilder();
+		while(true){
+			char c = in.readChar();
+			if(c == '\0')
+				break;
+			str.append(c);
+		}
+		return str.toString();
+	}
 
 	static InetAddress getBroadcastAddress(){
 		InetAddress broadcastAddress = null;

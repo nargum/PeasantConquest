@@ -1,8 +1,10 @@
 package eu.kotrzena.peasantconquest;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.opengl.Visibility;
 import android.os.Build;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -17,6 +19,9 @@ import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -31,14 +36,16 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 
 import eu.kotrzena.peasantconquest.game.Assets;
 import eu.kotrzena.peasantconquest.game.Game;
+import eu.kotrzena.peasantconquest.game.PlayerInfo;
 
 public class GameActivity extends AppCompatActivity {
 	public SurfaceView gameView = null;
 	public SeekBar unitSlider = null;
-	private View overlay = null;
+	public View overlay = null;
 	public Game game = null;
 	public DrawThread drawThread = null;
 
@@ -46,6 +53,8 @@ public class GameActivity extends AppCompatActivity {
 	private Thread serverThread = null;
 	private int serverMap = 0;
 	private Thread clientThread = null;
+
+	private ClientConnection clientConnection = null;
 
 	class LoadRunnable implements Runnable {
 		@Override
@@ -58,7 +67,10 @@ public class GameActivity extends AppCompatActivity {
 				serverMap = R.xml.mapa;
 				XmlPullParser xml = getResources().getXml(serverMap);
 				startGame(xml);
-				//game.getPlayers().get(0).isHost = true;
+
+				PlayerInfo p = game.getPlayers().get(0);
+				p.isHost = true;
+				p.ready = true;
 
 				startScanResponseThread();
 				startServerSocket();
@@ -129,7 +141,38 @@ public class GameActivity extends AppCompatActivity {
 		new Thread(new LoadRunnable()).start();
     }
 
-    private void startScanResponseThread(){
+	@Override
+	protected void onStop() {
+		super.onStop();
+		if(scanResponseThread != null)
+			scanResponseThread.interrupt();
+		if(clientThread != null)
+			clientThread.interrupt();
+		if(drawThread != null)
+			drawThread.interrupt();
+		if(clientConnection != null){
+			if(clientConnection.thread != null)
+				clientConnection.thread.interrupt();
+			if(clientConnection.socket != null)
+				try {
+					clientConnection.socket.close();
+				} catch (IOException e){}
+		}
+		if(game != null && game.getPlayers() != null){
+			for(PlayerInfo p : game.getPlayers()){
+				if(p.clientConnection != null){
+					if(p.clientConnection.thread != null)
+						p.clientConnection.thread.interrupt();
+					if(p.clientConnection.socket != null)
+						try {
+							p.clientConnection.socket.close();
+						} catch (IOException e){}
+				}
+			}
+		}
+	}
+
+	private void startScanResponseThread(){
 		if(scanResponseThread != null && !scanResponseThread.isInterrupted())
 			scanResponseThread.interrupt();
 		scanResponseThread = new Thread(){
@@ -158,12 +201,7 @@ public class GameActivity extends AppCompatActivity {
 												ByteArrayOutputStream baos = new ByteArrayOutputStream();
 												DataOutputStream dos = new DataOutputStream(baos);
 												dos.writeShort(Networking.INDENTIFIER);
-												dos.writeByte(Networking.MessageType.SERVER_SCAN_RESPONSE);
-												String map = getResources().getResourceEntryName(serverMap);
-												for(int i = 0; i < map.length(); i++){
-													dos.writeChar(map.charAt(i));
-												}
-												dos.writeChar('\0');
+												new Networking.ServerScanResponse(getResources().getResourceEntryName(serverMap)).write(dos);
 												byte data[] = baos.toByteArray();
 												DatagramPacket p = new DatagramPacket(data, data.length);
 												p.setAddress(packet.getAddress());
@@ -215,19 +253,43 @@ public class GameActivity extends AppCompatActivity {
 					while(!isInterrupted()){
 						Socket socket = server.accept();
 						socket.setKeepAlive(true);
+						socket.setTcpNoDelay(true);
+						socket.setReceiveBufferSize(128);
 						new Networking.TcpResponseThread(socket){
 							@Override
 							public void run() {
+								Log.i("Networking", "Received connection from "+socket.getInetAddress());
 								try {
-									InputStream is = socket.getInputStream();
-									DataInputStream dis = new DataInputStream(is);
+									DataInputStream dis = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
 									if(dis.readShort() == Networking.INDENTIFIER){
 										if(dis.readByte() == Networking.MessageType.JOIN){
-											OutputStream os = socket.getOutputStream();
-											DataOutputStream dos = new DataOutputStream(os);
-											dos.writeInt(serverMap);
-											dos.flush();
-											os.flush();
+											PlayerInfo player = null;
+											ArrayList<PlayerInfo> players = game.getPlayers();
+											synchronized (players) {
+												for (PlayerInfo p : game.getPlayers()) {
+													if (!p.isHost && p.clientConnection == null) {
+														player = p;
+														break;
+													}
+												}
+												DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
+												if (player == null) {
+													Log.i("Networking", "Join refuse "+socket.getInetAddress());
+													new Networking.JoinRefuse(R.string.join_refused_no_empty_slot).write(dos);
+													dos.close();
+													socket.close();
+												} else {
+													Log.i("Networking", "Join accept "+socket.getInetAddress());
+													new Networking.JoinAccept(serverMap, player.id).write(dos);
+													player.clientConnection = new ClientConnection(player.id);
+													player.clientConnection.address = socket.getInetAddress();
+													player.clientConnection.socket = socket;
+													player.clientConnection.in = dis;
+													player.clientConnection.out = dos;
+													new ServerThread(player.clientConnection, GameActivity.this).start();
+													//dos.flush();
+												}
+											}
 										}
 									}
 								} catch (IOException e) {
@@ -253,6 +315,7 @@ public class GameActivity extends AppCompatActivity {
 				}
 			}
 		};
+		serverThread.setName("_StartServerSocketThread");
 		serverThread.start();
 	}
 
@@ -264,22 +327,54 @@ public class GameActivity extends AppCompatActivity {
 				try {
 					socket = new Socket(serverAddr, Networking.PORT);
 					socket.setKeepAlive(true);
-					OutputStream os = socket.getOutputStream();
-					DataOutputStream dos = new DataOutputStream(os);
+					socket.setTcpNoDelay(true);
+					socket.setReceiveBufferSize(128);
+					Log.i("Networking", "Connected to "+socket.getInetAddress());
+					DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
 					dos.writeShort(Networking.INDENTIFIER);
 					dos.writeByte(Networking.MessageType.JOIN);
 					dos.flush();
-					os.flush();
 
-					InputStream is = socket.getInputStream();
-					DataInputStream dis = new DataInputStream(is);
-					int map_id = dis.readInt();
-					startGame(getResources().getXml(map_id));
+					DataInputStream dis = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
+					byte messageType = dis.readByte();
+					switch(messageType){
+						case Networking.MessageType.JOIN_ACCEPT: {
+							Log.i("Networking", "Join accepted "+socket.getInetAddress());
+							Networking.JoinAccept msg = new Networking.JoinAccept(dis);
+							clientConnection = new ClientConnection(msg.playerId);
+							clientConnection.socket = socket;
+							clientConnection.address = socket.getInetAddress();
+							clientConnection.in = dis;
+							clientConnection.out = dos;
+							new ClientThread(clientConnection, GameActivity.this).start();
+							startGame(getResources().getXml(msg.mapId));
+							break;
+						}
+						case Networking.MessageType.JOIN_REFUSE: {
+							Log.i("Networking", "Join refused "+socket.getInetAddress());
+							Networking.JoinRefuse msg = new Networking.JoinRefuse(dis);
+							AlertDialog alertDialog = new AlertDialog.Builder(GameActivity.this).create();
+							alertDialog.setTitle(R.string.error);
+							alertDialog.setMessage(getString(msg.reasonStringId));
+							alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, getString(R.string.ok),
+									new DialogInterface.OnClickListener() {
+										public void onClick(DialogInterface dialog, int which) {
+											dialog.dismiss();
+										}
+									});
+							alertDialog.show();
+							//TODO: Dialog se nezobrazí pokud aktivitu hned ukončím
+							socket.close();
+							GameActivity.this.finish();
+							break;
+						}
+					}
 				} catch (IOException e) {
 					Log.e(this.getClass().getName(), "IOException", e);
 				}
 			}
 		};
+		clientThread.setName("_StartClientSocketThread");
 		clientThread.start();
 	}
 
@@ -315,7 +410,6 @@ public class GameActivity extends AppCompatActivity {
 			@Override
 			public void run() {
 				game.fitDisplay(gameView);
-				overlay.setVisibility(View.GONE);
 			}
 		});
 	}

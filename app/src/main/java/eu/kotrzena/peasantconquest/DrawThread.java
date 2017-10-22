@@ -11,6 +11,7 @@ public class DrawThread extends Thread {
 	private GameActivity activity;
 
 	public DrawThread(SurfaceHolder surfaceHolder, GameActivity activity){
+		setName("_DrawThread");
 		this.surfaceHolder = surfaceHolder;
 		this.activity = activity;
 	}
@@ -27,8 +28,6 @@ public class DrawThread extends Thread {
 			if(canvas == null)
 				continue;
 
-			activity.game.update();
-
 			synchronized(surfaceHolder){
 				activity.game.draw(canvas);
 			}
@@ -44,11 +43,6 @@ public class DrawThread extends Thread {
 				} catch (InterruptedException e) {
 					return;
 				}
-			}
-			while(sleepTime > 0){
-				activity.game.update();
-
-				sleepTime += FRAME_PERIOD;
 			}
 		}
 	}

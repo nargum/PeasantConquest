@@ -3,7 +3,8 @@
              android:layout_width="match_parent"
              android:layout_height="match_parent"
              android:background="#000000"
-             tools:context="eu.kotrzena.peasantconquest.GameActivity">
+             tools:context="eu.kotrzena.peasantconquest.GameActivity"
+			 android:keepScreenOn="true">
 
     <!-- The primary full-screen view. This can be replaced with whatever view
          is needed to present your content, e.g. VideoView, SurfaceView,
@@ -25,7 +26,7 @@
 
         <SeekBar
             android:id="@+id/unitSlider"
-            style="@android:style/Widget.Material.SeekBar"
+            style="@android:style/Widget.SeekBar"
             android:layout_width="match_parent"
             android:layout_height="50dp"
             android:max="100"

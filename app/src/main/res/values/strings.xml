@@ -10,4 +10,7 @@
 
 	<string name="start_game">Start Game</string>
 	<string name="join_game">Join Game</string>
+
+	<string name="join_refused_no_empty_slot">Game you are trying to connect to is full.</string>
+	<string name="connection_lost">Connection was lost.</string>
 </resources>
