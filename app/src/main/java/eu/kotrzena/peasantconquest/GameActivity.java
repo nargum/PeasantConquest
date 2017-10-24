@@ -1,14 +1,11 @@
 package eu.kotrzena.peasantconquest;
 
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.opengl.Visibility;
 import android.os.Build;
-import android.support.v7.app.AlertDialog;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.util.Xml;
 import android.view.MotionEvent;
 import android.view.SurfaceView;
 import android.view.View;
@@ -16,19 +13,14 @@ import android.view.WindowManager;
 import android.widget.SeekBar;
 
 import org.xmlpull.v1.XmlPullParser;
-import org.xmlpull.v1.XmlPullParserException;
-import org.xmlpull.v1.XmlPullParserFactory;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -54,7 +46,11 @@ public class GameActivity extends AppCompatActivity {
 	private int serverMap = 0;
 	private Thread clientThread = null;
 
-	private ClientConnection clientConnection = null;
+	// Connection to server if in client mode
+	public ClientConnection clientConnection = null;
+
+	// Servers logic thread if in server mode
+	public ServerLogicThread serverLogicThread = null;
 
 	class LoadRunnable implements Runnable {
 		@Override
@@ -66,7 +62,7 @@ public class GameActivity extends AppCompatActivity {
 			if(type.equals("server")){
 				serverMap = R.xml.mapa;
 				XmlPullParser xml = getResources().getXml(serverMap);
-				startGame(xml);
+				startGame(xml, true);
 
 				PlayerInfo p = game.getPlayers().get(0);
 				p.isHost = true;
@@ -93,17 +89,17 @@ public class GameActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_game);
 
-		/*ActionBar actionBar = getSupportActionBar();
+		ActionBar actionBar = getSupportActionBar();
 		if (actionBar != null) {
 			actionBar.hide();
-		}*/
+		}
 
 		// If the Android version is lower than Jellybean, use this call to hide
 		// the status bar.
-		/*if (Build.VERSION.SDK_INT < 16) {
+		if (Build.VERSION.SDK_INT < 16) {
 			getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
 					WindowManager.LayoutParams.FLAG_FULLSCREEN);
-		}*/
+		}
 
 
 		// -----------------
@@ -138,8 +134,14 @@ public class GameActivity extends AppCompatActivity {
 				e.printStackTrace();
 			}
 		}*/
-		new Thread(new LoadRunnable()).start();
     }
+
+	@Override
+	protected void onStart() {
+		super.onStart();
+
+		new Thread(new LoadRunnable()).start();
+	}
 
 	@Override
 	protected void onStop() {
@@ -158,6 +160,8 @@ public class GameActivity extends AppCompatActivity {
 					clientConnection.socket.close();
 				} catch (IOException e){}
 		}
+		if(serverLogicThread != null)
+			serverLogicThread.interrupt();
 		if(game != null && game.getPlayers() != null){
 			for(PlayerInfo p : game.getPlayers()){
 				if(p.clientConnection != null){
@@ -192,7 +196,7 @@ public class GameActivity extends AppCompatActivity {
 								ByteArrayInputStream bais = new ByteArrayInputStream(packet.getData(), 0, packet.getLength());
 								DataInputStream dis = new DataInputStream(bais);
 								try {
-									if(dis.readShort() == Networking.INDENTIFIER) {
+									if(dis.readShort() == Networking.IDENTIFIER) {
 										byte messageType = dis.readByte();
 										if (messageType == Networking.MessageType.SERVER_SCAN) {
 											DatagramSocket response = null;
@@ -200,7 +204,7 @@ public class GameActivity extends AppCompatActivity {
 												response = new DatagramSocket(null);
 												ByteArrayOutputStream baos = new ByteArrayOutputStream();
 												DataOutputStream dos = new DataOutputStream(baos);
-												dos.writeShort(Networking.INDENTIFIER);
+												dos.writeShort(Networking.IDENTIFIER);
 												new Networking.ServerScanResponse(getResources().getResourceEntryName(serverMap)).write(dos);
 												byte data[] = baos.toByteArray();
 												DatagramPacket p = new DatagramPacket(data, data.length);
@@ -261,7 +265,7 @@ public class GameActivity extends AppCompatActivity {
 								Log.i("Networking", "Received connection from "+socket.getInetAddress());
 								try {
 									DataInputStream dis = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
-									if(dis.readShort() == Networking.INDENTIFIER){
+									if(dis.readShort() == Networking.IDENTIFIER){
 										if(dis.readByte() == Networking.MessageType.JOIN){
 											PlayerInfo player = null;
 											ArrayList<PlayerInfo> players = game.getPlayers();
@@ -331,7 +335,7 @@ public class GameActivity extends AppCompatActivity {
 					socket.setReceiveBufferSize(128);
 					Log.i("Networking", "Connected to "+socket.getInetAddress());
 					DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
-					dos.writeShort(Networking.INDENTIFIER);
+					dos.writeShort(Networking.IDENTIFIER);
 					dos.writeByte(Networking.MessageType.JOIN);
 					dos.flush();
 
@@ -347,30 +351,24 @@ public class GameActivity extends AppCompatActivity {
 							clientConnection.in = dis;
 							clientConnection.out = dos;
 							new ClientThread(clientConnection, GameActivity.this).start();
-							startGame(getResources().getXml(msg.mapId));
+							startGame(getResources().getXml(msg.mapId), false);
 							break;
 						}
 						case Networking.MessageType.JOIN_REFUSE: {
 							Log.i("Networking", "Join refused "+socket.getInetAddress());
-							Networking.JoinRefuse msg = new Networking.JoinRefuse(dis);
-							AlertDialog alertDialog = new AlertDialog.Builder(GameActivity.this).create();
-							alertDialog.setTitle(R.string.error);
-							alertDialog.setMessage(getString(msg.reasonStringId));
-							alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, getString(R.string.ok),
-									new DialogInterface.OnClickListener() {
-										public void onClick(DialogInterface dialog, int which) {
-											dialog.dismiss();
-										}
-									});
-							alertDialog.show();
-							//TODO: Dialog se nezobrazí pokud aktivitu hned ukončím
+							final Networking.JoinRefuse msg = new Networking.JoinRefuse(dis);
+							runOnUiThread(new Runnable() {
+								@Override
+								public void run() {
+									GameActivity.this.connectionLost(msg.reasonStringId);
+								}
+							});
 							socket.close();
-							GameActivity.this.finish();
 							break;
 						}
 					}
 				} catch (IOException e) {
-					Log.e(this.getClass().getName(), "IOException", e);
+					connectionLost(R.string.server_not_listening);
 				}
 			}
 		};
@@ -378,7 +376,7 @@ public class GameActivity extends AppCompatActivity {
 		clientThread.start();
 	}
 
-    private void startGame(XmlPullParser map){
+    private void startGame(XmlPullParser map, boolean server){
 		game = Assets.loadMap(map);
 
 		gameView.setOnTouchListener(new View.OnTouchListener() {
@@ -412,5 +410,22 @@ public class GameActivity extends AppCompatActivity {
 				game.fitDisplay(gameView);
 			}
 		});
+
+		if(server) {
+			serverLogicThread = new ServerLogicThread(this);
+			serverLogicThread.start();
+		} else {
+			if (clientConnection != null)
+				clientConnection.send(new Networking.SimpleMessage(Networking.MessageType.READY));
+			Log.i("Networking", "Sending READY.");
+		}
+	}
+
+	public void connectionLost(int reason){
+		finish();
+		Intent intent = new Intent(this, DialogActivity.class);
+		intent.putExtra("title", R.string.error);
+		intent.putExtra("text", reason);
+		startActivity(intent);
 	}
 }

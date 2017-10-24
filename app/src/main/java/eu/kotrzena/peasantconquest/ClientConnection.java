@@ -1,5 +1,7 @@
 package eu.kotrzena.peasantconquest;
 
+import android.util.Log;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -18,7 +20,13 @@ public class ClientConnection {
 		this.playerId = playerId;
 	}
 
-	public void send(Networking.Message message) throws IOException {
-		message.write(out);
+	public synchronized void send(Networking.Message message) {
+		try {
+			message.write(out);
+		} catch (IOException e){
+			Log.e("Networking", "IOException", e);
+			if(socket.isClosed())
+				Log.w("Networking", "Socket is closed!");
+		}
 	}
 }

@@ -6,8 +6,6 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 
-import eu.kotrzena.peasantconquest.R;
-
 public class MainActivity extends AppCompatActivity {
 	private Button buttonStartGame;
 	private Button buttonJoinGame;

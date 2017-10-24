@@ -16,14 +16,17 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
 
+import eu.kotrzena.peasantconquest.GameActivity;
+import eu.kotrzena.peasantconquest.Networking;
 import eu.kotrzena.peasantconquest.R;
 
 public class Game {
 	private static Game game = null;
+	private GameActivity activity;
 	private Tile[][] tiles;
 	private LinkedList<Entity> entities = new LinkedList<Entity>();
 	ArrayList<PlayerInfo> players = new ArrayList<PlayerInfo>();
-	GameLogic gameLogic;
+	public GameLogic gameLogic;
 
 	public boolean pause = true;
 
@@ -43,7 +46,11 @@ public class Game {
 
 	private HashMap<Point, Integer> tileOwner = null;
 
-	public Game(){
+	private Paint debugPaint;
+	private Paint textPaint;
+
+	public Game(GameActivity activity){
+		this.activity = activity;
 		Game.game = this;
 		size_x = 5;
 		size_y = 5;
@@ -63,7 +70,8 @@ public class Game {
 		prepareLogic();
 	}
 
-	public Game(Tile[][] tiles, List<Entity> entities){
+	public Game(GameActivity activity, Tile[][] tiles, List<Entity> entities){
+		this.activity = activity;
 		Game.game = this;
 		size_x = tiles.length;
 		size_y = tiles[0].length;
@@ -93,18 +101,25 @@ public class Game {
 		prepareLogic();
 	}
 
+	private void preparePaints(){
+
+	}
+
 	public static Game getGame(){
 		return game;
 	}
 
 	public void fitDisplay(View view){
-		offset.x = -playAreaLeft * Tile.TILE_SIZE;
-		offset.y = -playAreaTop * Tile.TILE_SIZE;
+		float playAreaWidth = ((float)(playAreaRight-playAreaLeft+1) * Tile.TILE_SIZE);
+		float playAreaHeight = ((float)(playAreaBottom-(playAreaTop-0.3f)+1) * Tile.TILE_SIZE);
 
-		float scalex = ((float)view.getWidth()) / ((float)(playAreaRight-playAreaLeft+1) * Tile.TILE_SIZE);
-		float scaley = ((float)view.getHeight()) / ((float)(playAreaBottom-playAreaTop+1) * Tile.TILE_SIZE);
+		float scalex = ((float)view.getWidth()) / playAreaWidth;
+		float scaley = ((float)view.getHeight()) / playAreaHeight;
 
 		scale = (scalex > scaley)? scaley : scalex;
+
+		offset.x = -playAreaLeft * Tile.TILE_SIZE + (view.getWidth() - playAreaWidth*scale)/2;
+		offset.y = -(playAreaTop-0.3f) * Tile.TILE_SIZE + (view.getHeight() - playAreaHeight*scale)/2;
 	}
 
 	private void prepareLogic(){
@@ -238,7 +253,18 @@ public class Game {
 					if(p.x < size_x && p.y < size_y) {
 						int ni = tiles[p.x][p.y].nodeId;
 						if(ni != -1) {
-							gameLogic.sendArmy(motionEventStartNode, ni, takeUnitsPct);
+							if(activity.serverLogicThread != null) {
+								for(int pId = 0; pId < players.size(); pId++){
+									if(players.get(pId).isHost){
+										if(pId+1 == gameLogic.nodes[motionEventStartNode].playerId)
+											gameLogic.sendArmy(motionEventStartNode, ni, takeUnitsPct);
+										break;
+									}
+								}
+							} else if(activity.clientConnection != null) {
+								if(activity.clientConnection.playerId == gameLogic.nodes[motionEventStartNode].playerId)
+									activity.clientConnection.send(new Networking.ArmyCommand(motionEventStartNode, ni, takeUnitsPct));
+							}
 						}
 					}
 				}
@@ -288,6 +314,8 @@ public class Game {
 	}
 
 	public void draw(Canvas c){
+		c.drawRect(0, 0, c.getWidth(), c.getHeight(), new Paint());
+		c.save();
 		c.scale(scale, scale);
 		c.translate(offset.x, offset.y);
 		for(Tile[] tRow : tiles){
@@ -299,21 +327,24 @@ public class Game {
 		InsertionSort.sort(entities, new Comparator<Entity>() {
 			@Override
 			public int compare(Entity o, Entity t1) {
-				if(o.position.y > t1.position.y){
-					return 1;
-				} else {
-					return -1;
-				}
+			if(o.position.y > t1.position.y){
+				return 1;
+			} else {
+				return -1;
+			}
 			}
 		});
 		for(Entity e : entities){
 			e.draw(c);
 		}
-		debugDraw(c);
+		ArmyEntity.drawAll(c);
+		//debugDraw(c);
+		c.restore();
 	}
 
 	public void debugDraw(Canvas c){
 		Paint paint = new Paint();
+
 		paint.setARGB(255, 255, 255, 0);
 		paint.setStrokeWidth(2);
 		paint.setStyle(Paint.Style.STROKE);

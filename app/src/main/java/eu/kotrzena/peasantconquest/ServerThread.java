@@ -21,12 +21,22 @@ public class ServerThread extends Thread {
 				switch (messageType) {
 					case Networking.MessageType.READY:
 						Log.i("Networking", "Client ready "+connection.address.toString());
-						activity.game.getPlayers().get(1+connection.playerId).ready = true;
+						activity.game.getPlayers().get(connection.playerId-1).ready = true;
+						break;
+					case Networking.MessageType.READY_FOR_UPDATE:
+						activity.game.getPlayers().get(connection.playerId-1).readyForUpdate = true;
+						break;
+					case Networking.MessageType.ARMY_COMMAND:
+						Networking.ArmyCommand armyCommand = new Networking.ArmyCommand(connection.in);
+						if(activity.game.gameLogic.nodes[armyCommand.fromNode].playerId == connection.playerId){
+							activity.game.gameLogic.sendArmy(armyCommand.fromNode, armyCommand.toNode, armyCommand.unitsPct);
+						}
 						break;
 				}
 			}
 		} catch (IOException e) {
 			Log.e(getClass().getName(), "IOException", e);
+			activity.connectionLost(R.string.connection_lost);
 		}
 
 		Log.i("Networking", "Connection to client "+connection.address.toString()+" lost or closed.");

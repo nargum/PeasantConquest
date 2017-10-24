@@ -1,11 +1,11 @@
 package eu.kotrzena.peasantconquest;
 
 import android.content.Intent;
-import android.os.Parcel;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
@@ -21,10 +21,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.net.SocketException;
-import java.nio.ByteBuffer;
 import java.util.LinkedList;
 
 public class JoinActivity extends AppCompatActivity {
@@ -91,7 +88,7 @@ public class JoinActivity extends AppCompatActivity {
 					ByteArrayOutputStream baos = new ByteArrayOutputStream();
 					DataOutputStream dos = new DataOutputStream(baos);
 
-					dos.writeShort(Networking.INDENTIFIER);
+					dos.writeShort(Networking.IDENTIFIER);
 					dos.writeByte(Networking.MessageType.SERVER_SCAN);
 					dos.flush();
 
@@ -136,7 +133,7 @@ public class JoinActivity extends AppCompatActivity {
 								ByteArrayInputStream bais = new ByteArrayInputStream(packet.getData(), 0, packet.getLength());
 								DataInputStream dis = new DataInputStream(bais);
 								try {
-									if(dis.readShort() == Networking.INDENTIFIER) {
+									if(dis.readShort() == Networking.IDENTIFIER) {
 										byte messageType = dis.readByte();
 										if (messageType == Networking.MessageType.SERVER_SCAN_RESPONSE) {
 											Networking.ServerScanResponse ssr = new Networking.ServerScanResponse(dis);
@@ -153,13 +150,13 @@ public class JoinActivity extends AppCompatActivity {
 										}
 									}
 								} catch (IOException e) {
-									Log.e(this.getClass().getName(), "IOException", e);
+									//Log.e(this.getClass().getName(), "IOException", e);
 								}
 							}
 						}.start();
 					}
 				} catch (IOException e) {
-					Log.e(this.getClass().getName(), "IOException", e);
+					//Log.e(this.getClass().getName(), "IOException", e);
 				} finally {
 					if(server != null)
 						server.close();
@@ -182,5 +179,13 @@ public class JoinActivity extends AppCompatActivity {
 	protected void onPause() {
 		scanThread.interrupt();
 		super.onPause();
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		super.onCreateOptionsMenu(menu);
+		getMenuInflater().inflate(R.menu.join_activity_menu, menu);
+
+		return true;
 	}
 }

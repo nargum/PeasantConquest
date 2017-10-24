@@ -5,7 +5,7 @@ import android.graphics.Paint;
 import android.view.SurfaceHolder;
 
 public class DrawThread extends Thread {
-	public static final long FRAME_PERIOD = 1000/60;
+	public static final long FRAME_PERIOD = 1000/30;
 
 	private SurfaceHolder surfaceHolder;
 	private GameActivity activity;

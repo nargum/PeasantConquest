@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Paint;
+import android.graphics.Typeface;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.util.SparseArray;
@@ -13,12 +15,14 @@ import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.Type;
 import java.util.LinkedList;
 
+import eu.kotrzena.peasantconquest.GameActivity;
 import eu.kotrzena.peasantconquest.R;
 
 public class Assets {
-	private static Context context;
+	private static GameActivity context;
 	private static SparseArray<Bitmap> bitmaps = new SparseArray<Bitmap>();
 	private static SparseArray<Bitmap> colorLayerBitmaps = new SparseArray<Bitmap>();
 
@@ -27,7 +31,11 @@ public class Assets {
 
 	private static SparseArray<Byte> tilesRoads = new SparseArray<Byte>();
 
-	public static void init(Context context){
+	private static Typeface kenpixelFont;
+	private static Paint debugPaint;
+	private static Paint textPaint;
+
+	public static void init(GameActivity context){
 		if(bitmaps.size() > 0)
 			return;
 
@@ -99,6 +107,27 @@ public class Assets {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+
+		kenpixelFont = Typeface.createFromAsset(context.getAssets(), "fonts/kenpixel_mini_square.ttf");
+
+		debugPaint = new Paint();
+		debugPaint.setARGB(255, 255, 255, 0);
+		debugPaint.setStrokeWidth(2);
+		debugPaint.setStyle(Paint.Style.STROKE);
+
+		textPaint = new Paint();
+		textPaint.setARGB(255, 255, 255, 255);
+		textPaint.setTextSize(15);
+		textPaint.setAntiAlias(true);
+		textPaint.setTypeface(kenpixelFont);
+	}
+
+	public static Paint getDebugPaint() {
+		return debugPaint;
+	}
+
+	public static Paint getTextPaint() {
+		return textPaint;
 	}
 
 	public static Game loadMap(XmlPullParser xml){
@@ -244,7 +273,7 @@ public class Assets {
 				eventType = xml.next();
 			}
 			if(tiles != null)
-				return new Game(tiles, entities);
+				return new Game(context, tiles, entities);
 			else
 				return null;
 		} catch (XmlPullParserException e) {

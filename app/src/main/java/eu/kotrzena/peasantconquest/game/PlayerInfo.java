@@ -14,6 +14,7 @@ public class PlayerInfo {
 	public boolean isHost = false;
 	public ClientConnection clientConnection = null;
 	public boolean ready = false;
+	public boolean readyForUpdate = true;
 
 	public PlayerInfo(int id, int color){
 		this.id = id;

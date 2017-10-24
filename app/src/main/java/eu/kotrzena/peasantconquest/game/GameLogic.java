@@ -39,7 +39,9 @@ public class GameLogic {
 	public int sendArmy(int fromNode, int toNode, float unitsPct){
 		if(fromNode >= 0 && fromNode < nodes.length && toNode >= 0 && toNode < nodes.length && fromNode != toNode) {
 			int units = (int)(unitsPct*nodes[fromNode].unitsCount);
-			if(nodes[fromNode].unitsCount < units || nodes[toNode].playerId == -1)
+			if(units <= 0)
+				return -1;
+			if(nodes[fromNode].unitsCount < units || nodes[toNode].playerId < 0)
 				return -1;
 			Army army = null;
 

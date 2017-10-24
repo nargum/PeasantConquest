@@ -8,21 +8,24 @@
 	tools:context="eu.kotrzena.peasantconquest.MainActivity">
 
 	<LinearLayout
-		android:layout_width="match_parent"
+		android:layout_width="239dp"
 		android:layout_height="wrap_content"
+		android:layout_gravity="top|center"
 		android:orientation="vertical">
 
 		<Button
 			android:id="@+id/buttonStartGame"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:layout_weight="1"
+			android:layout_width="match_parent"
+			android:layout_height="60dp"
+			android:layout_marginTop="15dp"
+			android:layout_weight="0.70"
 			android:text="@string/start_game"/>
 
 		<Button
 			android:id="@+id/buttonJoinGame"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
+			android:layout_width="match_parent"
+			android:layout_height="60dp"
+			android:layout_marginTop="15dp"
 			android:layout_weight="1"
 			android:text="@string/join_game"/>
 
