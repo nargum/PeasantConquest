@@ -24,7 +24,7 @@ public class Game {
 	private static Game game = null;
 	private GameActivity activity;
 	private Tile[][] tiles;
-	private LinkedList<Entity> entities = new LinkedList<Entity>();
+	public LinkedList<Entity> entities = new LinkedList<Entity>();
 	ArrayList<PlayerInfo> players = new ArrayList<PlayerInfo>();
 	public GameLogic gameLogic;
 
@@ -38,8 +38,8 @@ public class Game {
 	private int playAreaLeft;
 	private int playAreaRight;
 
-	private float scale = 1.2f;
-	private PointF offset = new PointF(-20, 50);
+	private float scale = 1.0f;
+	private PointF offset = new PointF(0, 0);
 
 	private int motionEventStartNode = -1;
 	private float takeUnitsPct = 0;
@@ -101,8 +101,19 @@ public class Game {
 		prepareLogic();
 	}
 
-	private void preparePaints(){
-
+	public void destroy(){
+		game = null;
+		activity = null;
+		tiles = null;
+		if(entities != null) {
+			entities.clear();
+			entities = null;
+		}
+		if(players != null) {
+			players.clear();
+			players = null;
+		}
+		gameLogic = null;
 	}
 
 	public static Game getGame(){
@@ -324,10 +335,15 @@ public class Game {
 					tile.draw(c);
 			}
 		}
+		ArmyEntity.updateAll();
 		InsertionSort.sort(entities, new Comparator<Entity>() {
 			@Override
 			public int compare(Entity o, Entity t1) {
-			if(o.position.y > t1.position.y){
+			PointF opos = o.getPosition();
+			PointF tpos = t1.getPosition();
+			if(opos == null || tpos == null)
+				return 0;
+			if(opos.y > tpos.y){
 				return 1;
 			} else {
 				return -1;
@@ -337,7 +353,6 @@ public class Game {
 		for(Entity e : entities){
 			e.draw(c);
 		}
-		ArmyEntity.drawAll(c);
 		//debugDraw(c);
 		c.restore();
 	}

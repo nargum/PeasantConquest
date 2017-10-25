@@ -24,15 +24,14 @@
             android:layout_height="match_parent"
             android:layout_weight="1"/>
 
-        <SeekBar
-            android:id="@+id/unitSlider"
-            style="@style/Widget.AppCompat.SeekBar"
-            android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:max="100"
-            android:min="0"
-            android:minHeight="179dp"
-            android:progress="50"/>
+		<SeekBar
+			android:id="@+id/unitSlider"
+			android:layout_width="match_parent"
+			android:layout_height="34dp"
+			android:max="100"
+			android:min="0"
+			android:minHeight="179dp"
+			android:progress="50"/>
 
     </LinearLayout>
 
@@ -42,7 +41,11 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <ProgressBar
+		<ListView
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"/>
+
+		<ProgressBar
             android:id="@+id/progressBar"
             android:layout_width="match_parent"
             android:layout_height="match_parent"/>

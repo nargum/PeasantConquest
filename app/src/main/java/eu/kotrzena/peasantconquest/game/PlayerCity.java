@@ -3,6 +3,7 @@ package eu.kotrzena.peasantconquest.game;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.PointF;
 
 import eu.kotrzena.peasantconquest.R;
 
@@ -14,6 +15,7 @@ public class PlayerCity extends Entity {
 	public void draw(Canvas c){
 		super.draw(c);
 		if(colorLayer != null && tile != null && tile.nodeId >= 0){
+			PointF position = getPosition();
 			int playerId = Game.getGame().gameLogic.nodes[tile.nodeId].playerId;
 			c.drawBitmap(
 				colorLayer,

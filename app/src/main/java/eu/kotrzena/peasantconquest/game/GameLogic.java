@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class GameLogic {
 	public static final float ARMY_SPEED = 0.02f;
-	public static final float ARMY_DAMAGE = 0.01f;
+	public static final float ARMY_DAMAGE = 0.03f;
 
 	public class Node {
 		public int playerId;
@@ -33,7 +33,7 @@ public class GameLogic {
 
 	public Node[] nodes;
 	public Road[] roads;
-	public SparseArray<Army> armies = new SparseArray<Army>();
+	public final SparseArray<Army> armies = new SparseArray<Army>();
 	public int nextArmyId = 0;
 
 	public int sendArmy(int fromNode, int toNode, float unitsPct){
@@ -100,6 +100,15 @@ public class GameLogic {
 			}
 			army.roadId = toNodeData.road;
 
+			for(int ai = 0; ai < armies.size(); ai++){
+				Army army2 = armies.valueAt(ai);
+				if(army.roadId == army2.roadId && army.playerId != army2.playerId){
+					if(Math.abs(army.position - army2.position) < ARMY_SPEED){
+						return -1;
+					}
+				}
+			}
+
 			Road road = roads[army.roadId];
 			if(road.toNode == fromNode) {
 				army.backDirection = true;
@@ -128,66 +137,68 @@ public class GameLogic {
 		}
 
 		// Update armies
-		for(int i = 0; i < armies.size(); i++) {
-			GameLogic.Army army = armies.valueAt(i);
-			boolean move = true;
-			for(int j = 0; j < armies.size(); j++) {
-				if(i == j)
-					continue;
-				GameLogic.Army army2 = armies.valueAt(j);
-				if(army.roadId == army2.roadId && Math.abs(army.position - army2.position) < 2*ARMY_SPEED) {
-					if(army.playerId == army2.playerId && army.backDirection == army2.backDirection){
-						// Armies join
-						army.unitsCount += army2.unitsCount;
-						armies.delete(armies.keyAt(j));
-					} else if(army.playerId != army2.playerId){
-						// Armies fight
-						army2.unitsCount -= ARMY_DAMAGE;
-						move = false;
-						if(army.unitsCount < 1)
-							armies.delete(armies.keyAt(i));
-						if(army2.unitsCount < 1)
+		synchronized (armies) {
+			for (int i = 0; i < armies.size(); i++) {
+				GameLogic.Army army = armies.valueAt(i);
+				boolean move = true;
+				for (int j = 0; j < armies.size(); j++) {
+					if (i == j)
+						continue;
+					GameLogic.Army army2 = armies.valueAt(j);
+					if (army.roadId == army2.roadId && Math.abs(army.position - army2.position) < 2 * ARMY_SPEED) {
+						if (army.playerId == army2.playerId && army.backDirection == army2.backDirection) {
+							// Armies join
+							army.unitsCount += army2.unitsCount;
 							armies.delete(armies.keyAt(j));
+						} else if (army.playerId != army2.playerId) {
+							// Armies fight
+							army2.unitsCount -= ARMY_DAMAGE;
+							move = false;
+							if (army.unitsCount < 1)
+								armies.delete(armies.keyAt(i));
+							if (army2.unitsCount < 1)
+								armies.delete(armies.keyAt(j));
+						}
 					}
 				}
-			}
-			if(army.backDirection && army.position > 0) {
-				if(move)
-					army.position -= ARMY_SPEED;
-			} else if(!army.backDirection && army.position < roads[army.roadId].path.length+1){
-				if(move)
-					army.position += ARMY_SPEED;
-			} else {
-				// At the end of the road
-				int targetNodeId = (army.backDirection? roads[army.roadId].fromNode : roads[army.roadId].toNode);
-				if(!army.nextRoadId.isEmpty()){
-					// Next road
-					int nextRoad = army.nextRoadId.poll();
-					if(roads[nextRoad].fromNode == targetNodeId) {
-						army.backDirection = false;
-						army.position = 0;
-					} else {
-						army.backDirection = true;
-						army.position = roads[nextRoad].path.length + 1;
-					}
-					army.roadId = nextRoad;
+				if (army.backDirection && army.position > 0) {
+					if (move)
+						army.position -= ARMY_SPEED;
+				} else if (!army.backDirection && army.position < roads[army.roadId].path.length + 1) {
+					if (move)
+						army.position += ARMY_SPEED;
 				} else {
-					// At the target
-					Node targetNode = nodes[targetNodeId];
-					if(army.playerId == targetNode.playerId) {
-						// Join with city
-						targetNode.unitsCount += army.unitsCount;
-						armies.remove(armies.keyAt(i));
+					// At the end of the road
+					int targetNodeId = (army.backDirection ? roads[army.roadId].fromNode : roads[army.roadId].toNode);
+					if (!army.nextRoadId.isEmpty()) {
+						// Next road
+						int nextRoad = army.nextRoadId.poll();
+						if (roads[nextRoad].fromNode == targetNodeId) {
+							army.backDirection = false;
+							army.position = 0;
+						} else {
+							army.backDirection = true;
+							army.position = roads[nextRoad].path.length + 1;
+						}
+						army.roadId = nextRoad;
 					} else {
-						// Attack city
-						army.unitsCount -= ARMY_DAMAGE;
-						targetNode.unitsCount -= ARMY_DAMAGE;
-						if (army.unitsCount < 1)
-							armies.remove(armies.keyAt(i));
-						else if(targetNode.unitsCount < 1){
-							targetNode.playerId = army.playerId;
+						// At the target
+						Node targetNode = nodes[targetNodeId];
+						if (army.playerId == targetNode.playerId) {
+							// Join with city
 							targetNode.unitsCount += army.unitsCount;
 							armies.remove(armies.keyAt(i));
+						} else {
+							// Attack city
+							army.unitsCount -= ARMY_DAMAGE;
+							targetNode.unitsCount -= ARMY_DAMAGE;
+							if (army.unitsCount < 1)
+								armies.remove(armies.keyAt(i));
+							else if (targetNode.unitsCount < 1) {
+								targetNode.playerId = army.playerId;
+								targetNode.unitsCount += army.unitsCount;
+								armies.remove(armies.keyAt(i));
+							}
 						}
 					}
 				}

@@ -7,4 +7,28 @@
 	android:layout_height="match_parent"
 	tools:context="eu.kotrzena.peasantconquest.LobbyActivity">
 
+	<RelativeLayout
+		android:layout_width="match_parent"
+		android:layout_height="match_parent">
+
+	</RelativeLayout>
+
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"
+		android:orientation="vertical">
+
+		<SurfaceView
+			android:id="@+id/surfaceView"
+			android:layout_width="match_parent"
+			android:layout_height="0dp"/>
+
+		<SeekBar
+			android:id="@+id/seekBar3"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:max="100"
+			android:progress="50"/>
+	</LinearLayout>
+
 </FrameLayout>

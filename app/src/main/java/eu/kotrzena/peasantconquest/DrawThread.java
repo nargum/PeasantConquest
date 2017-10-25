@@ -25,7 +25,7 @@ public class DrawThread extends Thread {
 			beginTime = System.currentTimeMillis();
 			Canvas canvas = surfaceHolder.lockCanvas();
 
-			if(canvas == null)
+			if(canvas == null || !surfaceHolder.getSurface().isValid())
 				continue;
 
 			synchronized(surfaceHolder){

@@ -86,7 +86,6 @@ public class GameActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-
         setContentView(R.layout.activity_game);
 
 		ActionBar actionBar = getSupportActionBar();
@@ -101,50 +100,22 @@ public class GameActivity extends AppCompatActivity {
 					WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		}
 
-
 		// -----------------
 
 		gameView = (SurfaceView) findViewById(R.id.gameView);
 		unitSlider = (SeekBar) findViewById(R.id.unitSlider);
 		overlay = findViewById(R.id.overlay);
 
-		/*gameView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE
-				| View.SYSTEM_UI_FLAG_FULLSCREEN
-				| View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-				| View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-				| View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-				| View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);*/
-
-		/*Intent intent = getIntent();
-		String type = intent.getStringExtra("type");
-		if(type.equals("server")){
-			serverMap = R.xml.mapa;
-			XmlPullParser xml = getResources().getXml(serverMap);
-			startGame(xml);
-			//game.getPlayers().get(0).isHost = true;
-
-			startScanResponseThread();
-			startServerSocket();
-		} else if(type.equals("client")){
-			byte address[] = intent.getByteArrayExtra("address");
-			try {
-				InetAddress ipAddress = InetAddress.getByAddress(address);
-				startClientSocket(ipAddress);
-			} catch (UnknownHostException e) {
-				e.printStackTrace();
-			}
-		}*/
+		new Thread(new LoadRunnable()).start();
     }
 
 	@Override
 	protected void onStart() {
 		super.onStart();
-
-		new Thread(new LoadRunnable()).start();
 	}
 
 	@Override
-	protected void onStop() {
+	protected void onDestroy() {
 		super.onStop();
 		if(scanResponseThread != null)
 			scanResponseThread.interrupt();
@@ -173,6 +144,10 @@ public class GameActivity extends AppCompatActivity {
 						} catch (IOException e){}
 				}
 			}
+		}
+		if(game != null) {
+			game.destroy();
+			game = null;
 		}
 	}
 
@@ -291,7 +266,6 @@ public class GameActivity extends AppCompatActivity {
 													player.clientConnection.in = dis;
 													player.clientConnection.out = dos;
 													new ServerThread(player.clientConnection, GameActivity.this).start();
-													//dos.flush();
 												}
 											}
 										}

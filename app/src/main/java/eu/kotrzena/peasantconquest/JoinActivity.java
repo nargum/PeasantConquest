@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
@@ -186,6 +187,14 @@ public class JoinActivity extends AppCompatActivity {
 		super.onCreateOptionsMenu(menu);
 		getMenuInflater().inflate(R.menu.join_activity_menu, menu);
 
+		return true;
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		servers.clear();
+		listAdapter.notifyDataSetChanged();
+		startScan();
 		return true;
 	}
 }

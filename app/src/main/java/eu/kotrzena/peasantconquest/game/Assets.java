@@ -208,7 +208,7 @@ public class Assets {
 													switch(bitmapId){
 														case R.drawable.castle: {
 															PlayerCity e = new PlayerCity();
-															e.position.set(x + 0.5f, y + 1f);
+															e.setPosition(x + 0.5f, y + 1f);
 															e.texture = getBitmap(bitmapId);
 															e.colorLayer = getColorLayerBitmap(bitmapId);
 															e.tile = tiles[x][y];
@@ -254,7 +254,7 @@ public class Assets {
 													continue;
 												int bitmapId = intVal;
 												Entity e = new Entity();
-												e.position.set(x, y);
+												e.setPosition(x, y);
 												e.texture = getBitmap(bitmapId);
 												entities.add(e);
 											}
