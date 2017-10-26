@@ -6,7 +6,9 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
@@ -38,6 +40,10 @@ public class GameActivity extends AppCompatActivity {
 	public SurfaceView gameView = null;
 	public SeekBar unitSlider = null;
 	public View overlay = null;
+
+	ScaleGestureDetector scaleGestureDetector;
+	GestureDetector gestureDetector;
+
 	public Game game = null;
 	public DrawThread drawThread = null;
 
@@ -105,6 +111,23 @@ public class GameActivity extends AppCompatActivity {
 		gameView = (SurfaceView) findViewById(R.id.gameView);
 		unitSlider = (SeekBar) findViewById(R.id.unitSlider);
 		overlay = findViewById(R.id.overlay);
+
+		scaleGestureDetector = new ScaleGestureDetector(this, new ScaleGestureDetector.SimpleOnScaleGestureListener(){
+			@Override
+			public boolean onScale(ScaleGestureDetector detector) {
+				if(game != null)
+					game.onScale(detector.getFocusX(), detector.getFocusY(), detector.getScaleFactor());
+				return true;
+			}
+		});
+		gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener(){
+			@Override
+			public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+				if(game != null)
+					game.onScroll(distanceX, distanceY);
+				return true;
+			}
+		});
 
 		new Thread(new LoadRunnable()).start();
     }
@@ -356,6 +379,8 @@ public class GameActivity extends AppCompatActivity {
 		gameView.setOnTouchListener(new View.OnTouchListener() {
 			@Override
 			public boolean onTouch(View view, MotionEvent motionEvent) {
+				scaleGestureDetector.onTouchEvent(motionEvent);
+				gestureDetector.onTouchEvent(motionEvent);
 				game.onTouch(motionEvent);
 				return true;
 			}

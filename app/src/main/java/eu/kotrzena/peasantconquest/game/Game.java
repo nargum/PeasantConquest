@@ -129,8 +129,11 @@ public class Game {
 
 		scale = (scalex > scaley)? scaley : scalex;
 
-		offset.x = -playAreaLeft * Tile.TILE_SIZE + (view.getWidth() - playAreaWidth*scale)/2;
-		offset.y = -(playAreaTop-0.3f) * Tile.TILE_SIZE + (view.getHeight() - playAreaHeight*scale)/2;
+		playAreaWidth *= scale;
+		playAreaHeight *= scale;
+
+		offset.x = -(playAreaLeft * Tile.TILE_SIZE)*scale + Math.max((view.getWidth() - playAreaWidth)/2, 0);
+		offset.y = -((playAreaTop-0.3f) * Tile.TILE_SIZE)*scale + Math.max((view.getHeight() - playAreaHeight)/2, 0);
 	}
 
 	private void prepareLogic(){
@@ -253,7 +256,7 @@ public class Game {
 		Point p = getTouchTile(motionEvent.getX(), motionEvent.getY());
 		switch(motionEvent.getAction()){
 			case MotionEvent.ACTION_DOWN:
-				if(p.x < size_x && p.y < size_y) {
+				if(p.x >= 0 && p.y >= 0 && p.x < size_x && p.y < size_y) {
 					int ni = tiles[p.x][p.y].nodeId;
 					if(ni != -1)
 						motionEventStartNode = ni;
@@ -261,7 +264,7 @@ public class Game {
 				break;
 			case MotionEvent.ACTION_UP:
 				if(motionEventStartNode != -1){
-					if(p.x < size_x && p.y < size_y) {
+					if(p.x >= 0 && p.y >= 0 && p.x < size_x && p.y < size_y) {
 						int ni = tiles[p.x][p.y].nodeId;
 						if(ni != -1) {
 							if(activity.serverLogicThread != null) {
@@ -327,8 +330,8 @@ public class Game {
 	public void draw(Canvas c){
 		c.drawRect(0, 0, c.getWidth(), c.getHeight(), new Paint());
 		c.save();
-		c.scale(scale, scale);
 		c.translate(offset.x, offset.y);
+		c.scale(scale, scale);
 		for(Tile[] tRow : tiles){
 			for(Tile tile : tRow){
 				if(tile != null)
@@ -414,5 +417,22 @@ public class Game {
 
 	public ArrayList<PlayerInfo> getPlayers() {
 		return players;
+	}
+
+	public void onScale(float focusX, float focusY, float scaleFactor) {
+		offset.x *= scaleFactor;
+		offset.y *= scaleFactor;
+		offset.x -= (focusX*scaleFactor-focusX);
+		offset.y -= (focusY*scaleFactor-focusY);
+		//offset.x = (offset.x/scale - (focusX - offset.x)*(scaleFactor) - (focusX - offset.x))*scaleFactor;
+		//offset.y = (offset.y/scale - (focusY - offset.y)*(scaleFactor) - (focusY - offset.y))*scaleFactor;
+		//offset.x = -(focusX*scaleFactor + offset.x*scale);
+		//offset.y = -(focusY*scaleFactor + offset.y*scale);
+		scale *= scaleFactor;
+	}
+
+	public void onScroll(float distanceX, float distanceY) {
+		offset.x -= distanceX;
+		offset.y -= distanceY;
 	}
 }
