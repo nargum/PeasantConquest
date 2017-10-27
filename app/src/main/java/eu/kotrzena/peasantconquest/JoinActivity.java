@@ -1,6 +1,7 @@
 package eu.kotrzena.peasantconquest;
 
 import android.content.Intent;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -9,6 +10,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
@@ -26,9 +28,10 @@ import java.net.SocketException;
 import java.util.LinkedList;
 
 public class JoinActivity extends AppCompatActivity {
-	class ServerEntry {
+	private class ServerEntry {
 		InetAddress ipAddress;
 		String map;
+		String phoneName;
 	}
 
 	LinkedList<ServerEntry> servers = new LinkedList<ServerEntry>();
@@ -46,8 +49,9 @@ public class JoinActivity extends AppCompatActivity {
 
 		listServer = (ListView) findViewById(R.id.listServers);
 		listAdapter = new ArrayAdapter<ServerEntry>(this, R.layout.join_list_item_layout, servers){
+			@NonNull
 			@Override
-			public View getView(int position, View convertView, ViewGroup parent){
+			public View getView(int position, View convertView, @NonNull ViewGroup parent){
 				View row = convertView;
 
 				if(row == null)				{
@@ -59,22 +63,22 @@ public class JoinActivity extends AppCompatActivity {
 				final ServerEntry se = servers.get(position);
 				((TextView)row.findViewById(R.id.textIP)).setText(se.ipAddress.toString());
 				((TextView)row.findViewById(R.id.textMap)).setText(se.map);
-				Button joinButton = (Button)row.findViewById(R.id.buttonJoin);
-				joinButton.setOnClickListener(new View.OnClickListener() {
-					ServerEntry serverEntry = se;
-					@Override
-					public void onClick(View view) {
-						Intent intent = new Intent(JoinActivity.this, GameActivity.class);
-						intent.putExtra("type", "client");
-						intent.putExtra("address", serverEntry.ipAddress.getAddress());
-						startActivity(intent);
-					}
-				});
+				((TextView)row.findViewById(R.id.textName)).setText(se.phoneName);
 
 				return row;
 			}
 		};
 		listServer.setAdapter(listAdapter);
+		listServer.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+			@Override
+			public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+				ServerEntry server = servers.get(i);
+				Intent intent = new Intent(JoinActivity.this, GameActivity.class);
+				intent.putExtra("type", "client");
+				intent.putExtra("address", server.ipAddress.getAddress());
+				startActivity(intent);
+			}
+		});
 	}
 
 	private void startScan(){
@@ -141,6 +145,7 @@ public class JoinActivity extends AppCompatActivity {
 											ServerEntry se = new ServerEntry();
 											se.ipAddress = packet.getAddress();
 											se.map = ssr.mapName;
+											se.phoneName = ssr.phoneName;
 											servers.add(se);
 											JoinActivity.this.runOnUiThread(new Runnable() {
 												@Override

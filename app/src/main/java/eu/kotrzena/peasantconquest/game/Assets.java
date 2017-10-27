@@ -1,11 +1,12 @@
 package eu.kotrzena.peasantconquest.game;
 
-import android.content.Context;
 import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Paint;
 import android.graphics.Typeface;
+import android.preference.PreferenceManager;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.util.SparseArray;
@@ -15,7 +16,6 @@ import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.lang.reflect.Type;
 import java.util.LinkedList;
 
 import eu.kotrzena.peasantconquest.GameActivity;
@@ -34,6 +34,7 @@ public class Assets {
 	private static Typeface kenpixelFont;
 	private static Paint debugPaint;
 	private static Paint textPaint;
+	private static Paint backgroundPaint;
 
 	public static void init(GameActivity context){
 		if(bitmaps.size() > 0)
@@ -120,6 +121,9 @@ public class Assets {
 		textPaint.setTextSize(15);
 		textPaint.setAntiAlias(true);
 		textPaint.setTypeface(kenpixelFont);
+
+		backgroundPaint = new Paint();
+		backgroundPaint.setARGB(255, 39, 174, 96);
 	}
 
 	public static Paint getDebugPaint() {
@@ -128,6 +132,10 @@ public class Assets {
 
 	public static Paint getTextPaint() {
 		return textPaint;
+	}
+
+	public static Paint getBackgroundPaint() {
+		return backgroundPaint;
 	}
 
 	public static Game loadMap(XmlPullParser xml){
@@ -235,6 +243,8 @@ public class Assets {
 											x /= mapTileSize;
 											y /= mapTileSize;
 											String gidAttr = xml.getAttributeValue(null, "gid");
+											SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+											boolean loadDecorations = prefs.getBoolean("graphicsRenderDecorations", true);
 											if(gidAttr == null){
 												eventType = xml.next();
 												if(eventType == XmlPullParser.END_TAG && xml.getName().equals("objectgroup"))
@@ -247,15 +257,16 @@ public class Assets {
 														tiles[(int) x][(int) y].ownerOnStart = Integer.parseInt(xml.getText());
 													}
 												}
-											} else {
+											} else if(loadDecorations) {
 												int gid = Integer.parseInt(gidAttr);
 												Integer intVal = tilesetIds.get(gid - tilesetOffset);
 												if(intVal == null)
 													continue;
 												int bitmapId = intVal;
 												Entity e = new Entity();
-												e.setPosition(x, y);
-												e.texture = getBitmap(bitmapId);
+												Bitmap bitmap = getBitmap(bitmapId);
+												e.setPosition(x + (((float)bitmap.getWidth())/2)/Tile.TILE_SIZE, y);
+												e.texture = bitmap;
 												entities.add(e);
 											}
 										}

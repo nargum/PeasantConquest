@@ -22,7 +22,7 @@ public class PlayerCity extends Entity {
 				Tile.TILE_SIZE * position.x - ((float) texture.getWidth()) / 2,
 				Tile.TILE_SIZE * position.y - ((float) texture.getHeight()),
 				(playerId > 0)?
-					Game.getGame().players.get(-1 + playerId).colorFilter :
+					Game.getGame().players.get(playerId).colorFilter :
 					null
 			);
 			if(tile.nodeId >= 0) {
@@ -31,14 +31,14 @@ public class PlayerCity extends Entity {
 					cityFlag,
 					position.x * Tile.TILE_SIZE - cityFlag.getWidth(), (position.y - 1f) * Tile.TILE_SIZE - cityFlag.getHeight(),
 					(playerId > 0)?
-						Game.getGame().players.get(-1 + playerId).colorFilter :
+						Game.getGame().players.get(playerId).colorFilter :
 						null
 				);
 				int unitsCount = (int)Game.getGame().gameLogic.nodes[tile.nodeId].unitsCount;
 				Paint textPaint = Assets.getTextPaint();
 				textPaint.setTextAlign(Paint.Align.CENTER);
 				c.drawText(
-					Integer.toString((int) unitsCount),
+					Integer.toString(unitsCount),
 					(position.x - 0.18f) * Tile.TILE_SIZE, (position.y - 1.05f) * Tile.TILE_SIZE,
 					textPaint
 				);

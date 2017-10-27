@@ -5,6 +5,8 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.PointF;
+import android.util.Log;
+import android.util.SparseArray;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.SeekBar;
@@ -21,11 +23,15 @@ import eu.kotrzena.peasantconquest.Networking;
 import eu.kotrzena.peasantconquest.R;
 
 public class Game {
+	private static final int[] playerColors = new int[]{
+		0xffa6583c,
+		0xff157da8
+	};
 	private static Game game = null;
 	private GameActivity activity;
 	private Tile[][] tiles;
 	public LinkedList<Entity> entities = new LinkedList<Entity>();
-	ArrayList<PlayerInfo> players = new ArrayList<PlayerInfo>();
+	SparseArray<PlayerInfo> players = new SparseArray<>();
 	public GameLogic gameLogic;
 
 	public boolean pause = true;
@@ -39,15 +45,11 @@ public class Game {
 	private int playAreaRight;
 
 	private float scale = 1.0f;
+	private float minScale = 1.0f;
 	private PointF offset = new PointF(0, 0);
 
 	private int motionEventStartNode = -1;
 	private float takeUnitsPct = 0;
-
-	private HashMap<Point, Integer> tileOwner = null;
-
-	private Paint debugPaint;
-	private Paint textPaint;
 
 	public Game(GameActivity activity){
 		this.activity = activity;
@@ -134,15 +136,15 @@ public class Game {
 
 		offset.x = -(playAreaLeft * Tile.TILE_SIZE)*scale + Math.max((view.getWidth() - playAreaWidth)/2, 0);
 		offset.y = -((playAreaTop-0.3f) * Tile.TILE_SIZE)*scale + Math.max((view.getHeight() - playAreaHeight)/2, 0);
+
+		// Min scale
+		scalex = ((float)view.getWidth()) / ((float)size_x*Tile.TILE_SIZE);
+		scaley = ((float)view.getHeight()) / ((float)size_y*Tile.TILE_SIZE);
+
+		minScale = (scalex < scaley)? scaley : scalex;
 	}
 
 	private void prepareLogic(){
-		PlayerInfo pi = new PlayerInfo(1, 0xffa6583c);
-		players.add(pi);
-		pi = new PlayerInfo(2, 0xff157da8);
-		players.add(pi);
-		//TODO: Vytvořit hráče podle mapy
-
 		gameLogic = new GameLogic();
 
 		// Find nodes
@@ -164,6 +166,10 @@ public class Game {
 						for(int i = 0; i < node.roads.length; i++)
 							node.roads[i] = -1;
 						node.playerId = tiles[x][y].ownerOnStart;
+						if(node.playerId > 0 && players.get(node.playerId) == null){
+							PlayerInfo pi = new PlayerInfo(node.playerId, playerColors[node.playerId-1]);
+							players.append(node.playerId, pi);
+						}
 						nodes.add(node);
 						tile.nodeId = nodes.size() - 1;
 					}
@@ -177,22 +183,15 @@ public class Game {
 		// Find roads
 		boolean visited[][] = new boolean[size_x][size_y];
 
-		Stack<Point> stack = new Stack<Point>();
-		for(GameLogic.Node node : gameLogic.nodes)
-			stack.push(node.position);
-
 		ArrayList<GameLogic.Road> roads = new ArrayList<GameLogic.Road>();
 
 		for(int i = 0; i < gameLogic.nodes.length; i++){
-		//while(!stack.isEmpty()){
-			//Point nodePoint = stack.pop();
 			GameLogic.Node node = gameLogic.nodes[i];
 			Point nodePoint = node.position;
 			Tile tile = tiles[nodePoint.x][nodePoint.y];
 
 			byte[] directions = new byte[]{Tile.ROAD_N, Tile.ROAD_S, Tile.ROAD_W, Tile.ROAD_E};
 			for(byte dir : directions){
-			//if((tile.getRoads() & Tile.ROAD_N) != 0){
 				if((tile.getRoads() & dir) == 0){
 					continue;
 				}
@@ -244,16 +243,17 @@ public class Game {
 		gameLogic.roads = roads.toArray(gameLogic.roads);
 	}
 
-	public Point getTouchTile(float x, float y){
-		x /= scale;
-		y /= scale;
+	public Point getTouchTile(double x, double y){
 		x -= offset.x;
 		y -= offset.y;
+		x /= scale;
+		y /= scale;
 		return new Point((int)(x/Tile.TILE_SIZE), (int)(y/Tile.TILE_SIZE));
 	}
 
 	public void onTouch(MotionEvent motionEvent){
 		Point p = getTouchTile(motionEvent.getX(), motionEvent.getY());
+		Log.i("Game", "Touch point "+p.toString());
 		switch(motionEvent.getAction()){
 			case MotionEvent.ACTION_DOWN:
 				if(p.x >= 0 && p.y >= 0 && p.x < size_x && p.y < size_y) {
@@ -268,9 +268,11 @@ public class Game {
 						int ni = tiles[p.x][p.y].nodeId;
 						if(ni != -1) {
 							if(activity.serverLogicThread != null) {
-								for(int pId = 0; pId < players.size(); pId++){
-									if(players.get(pId).isHost){
-										if(pId+1 == gameLogic.nodes[motionEventStartNode].playerId)
+								SparseArray<PlayerInfo> players = game.getPlayers();
+								for(int i = 0; i < players.size(); i++){
+									PlayerInfo player = players.valueAt(i);
+									if(player.isHost){
+										if(players.keyAt(i) == gameLogic.nodes[motionEventStartNode].playerId)
 											gameLogic.sendArmy(motionEventStartNode, ni, takeUnitsPct);
 										break;
 									}
@@ -328,7 +330,7 @@ public class Game {
 	}
 
 	public void draw(Canvas c){
-		c.drawRect(0, 0, c.getWidth(), c.getHeight(), new Paint());
+		c.drawRect(0, 0, c.getWidth(), c.getHeight(), Assets.getBackgroundPaint());
 		c.save();
 		c.translate(offset.x, offset.y);
 		c.scale(scale, scale);
@@ -415,7 +417,7 @@ public class Game {
 		}
 	}
 
-	public ArrayList<PlayerInfo> getPlayers() {
+	public SparseArray<PlayerInfo> getPlayers() {
 		return players;
 	}
 
@@ -429,10 +431,25 @@ public class Game {
 		//offset.x = -(focusX*scaleFactor + offset.x*scale);
 		//offset.y = -(focusY*scaleFactor + offset.y*scale);
 		scale *= scaleFactor;
+		checkViewBounds();
 	}
 
 	public void onScroll(float distanceX, float distanceY) {
 		offset.x -= distanceX;
 		offset.y -= distanceY;
+		checkViewBounds();
+	}
+
+	private void checkViewBounds(){
+		if(scale < minScale)
+			scale = minScale;
+		if(offset.x > 0)
+			offset.x = 0;
+		if(offset.y > 0)
+			offset.y = 0;
+		if(size_x*Tile.TILE_SIZE*scale + offset.x < activity.gameView.getWidth())
+			offset.x = activity.gameView.getWidth()-size_x*Tile.TILE_SIZE*scale;
+		if(size_y*Tile.TILE_SIZE*scale + offset.y < activity.gameView.getHeight())
+			offset.y = activity.gameView.getHeight()-size_y*Tile.TILE_SIZE*scale;
 	}
 }

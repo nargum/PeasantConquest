@@ -1,6 +1,7 @@
 package eu.kotrzena.peasantconquest;
 
 import android.util.Log;
+import android.util.SparseArray;
 import android.view.View;
 
 import java.util.LinkedList;
@@ -30,16 +31,19 @@ public class ServerLogicThread extends Thread {
 			while(!isInterrupted()){
 				beginTime = System.currentTimeMillis();
 
+				SparseArray<PlayerInfo> players = activity.game.getPlayers();
 				if(activity.game.pause){
 					boolean allReady = true;
-					for(PlayerInfo p : activity.game.getPlayers()){
+					for(int i = 0; i < players.size(); i++){
+						PlayerInfo p = players.valueAt(i);
 						if(!p.ready && !p.isHost){
 							allReady = false;
 							break;
 						}
 					}
 					if(allReady){
-						for(PlayerInfo p : activity.game.getPlayers()){
+						for(int i = 0; i < players.size(); i++){
+							PlayerInfo p = players.valueAt(i);
 							if(p.clientConnection != null) {
 								p.clientConnection.send(new Networking.SimpleMessage(Networking.MessageType.UNPAUSE));
 								Log.i("Networking", "Sending UNPAUSE to " + p.clientConnection.address.toString());
@@ -58,7 +62,8 @@ public class ServerLogicThread extends Thread {
 
 					final Networking.MinimalUpdate msg = new Networking.MinimalUpdate(activity.game.gameLogic);
 					LinkedList<PlayerThread> playerThreads = new LinkedList<PlayerThread>();
-					for(PlayerInfo p : activity.game.getPlayers()){
+					for(int i = 0; i < players.size(); i++){
+						PlayerInfo p = players.valueAt(i);
 						if(p.clientConnection != null) {
 							PlayerThread pt = new PlayerThread(p) {
 								@Override

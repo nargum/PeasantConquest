@@ -10,9 +10,22 @@
 
 	<string name="start_game">Start Game</string>
 	<string name="join_game">Join Game</string>
+	<string name="settings">Settings</string>
 	<string name="join">Join</string>
 
 	<string name="join_refused_no_empty_slot">Game you are trying to connect to is full.</string>
 	<string name="connection_lost">Connection was lost.</string>
 	<string name="server_not_listening">Could not connect to server.</string>
+
+	<string name="credits">Credits</string>
+	<string name="credits_graphics">Graphics</string>
+	<string name="credits_graphics_by">By Kenney\n
+	License: <a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0 1.0 Universal</a>\n
+	Website: <a href="http://kenney.nl/">kenney.nl</a></string>
+
+	<!-- Strings related to Settings -->
+	<string name="pref_header_graphics">Graphics</string>
+	<string name="pref_graphics_draw_deco">Draw decorations</string>
+	<string name="pref_graphics_use_hw_acc">Use hardware acceleration</string>
+	<string name="pref_graphics_use_hw_acc_summary">If supported</string>
 </resources>

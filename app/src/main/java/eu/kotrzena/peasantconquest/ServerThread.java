@@ -21,10 +21,10 @@ public class ServerThread extends Thread {
 				switch (messageType) {
 					case Networking.MessageType.READY:
 						Log.i("Networking", "Client ready "+connection.address.toString());
-						activity.game.getPlayers().get(connection.playerId-1).ready = true;
+						activity.game.getPlayers().get(connection.playerId).ready = true;
 						break;
 					case Networking.MessageType.READY_FOR_UPDATE:
-						activity.game.getPlayers().get(connection.playerId-1).readyForUpdate = true;
+						activity.game.getPlayers().get(connection.playerId).readyForUpdate = true;
 						break;
 					case Networking.MessageType.ARMY_COMMAND:
 						Networking.ArmyCommand armyCommand = new Networking.ArmyCommand(connection.in);

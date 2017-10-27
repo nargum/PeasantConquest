@@ -54,17 +54,20 @@ public class Networking {
 	public static class ServerScanResponse implements Message {
 		public static final byte messageType = MessageType.SERVER_SCAN_RESPONSE;
 		public String mapName;
-		public ServerScanResponse(String mapName){
+		public String phoneName;
+		public ServerScanResponse(String mapName, String phoneName){
 			this.mapName = mapName;
+			this.phoneName = phoneName;
 		}
 		public ServerScanResponse(DataInputStream in) throws IOException {
 			mapName = readString(in);
+			phoneName = readString(in);
 		}
 		@Override
 		public void write(DataOutputStream out) throws IOException {
 			out.writeByte(messageType);
 			writeString(out, mapName);
-			out.writeByte(0);
+			writeString(out, phoneName);
 			out.flush();
 		}
 	}
@@ -85,7 +88,6 @@ public class Networking {
 			out.writeByte(messageType);
 			out.writeInt(mapId);
 			out.writeInt(playerId);
-			out.writeByte(0);
 			out.flush();
 		}
 	}
@@ -102,7 +104,6 @@ public class Networking {
 		public void write(DataOutputStream out) throws IOException {
 			out.writeByte(messageType);
 			out.writeInt(reasonStringId);
-			out.writeByte(0);
 			out.flush();
 		}
 	}

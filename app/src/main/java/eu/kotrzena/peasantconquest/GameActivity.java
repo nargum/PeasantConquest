@@ -6,6 +6,7 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.SparseArray;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -30,7 +31,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 
 import eu.kotrzena.peasantconquest.game.Assets;
 import eu.kotrzena.peasantconquest.game.Game;
@@ -58,7 +58,7 @@ public class GameActivity extends AppCompatActivity {
 	// Servers logic thread if in server mode
 	public ServerLogicThread serverLogicThread = null;
 
-	class LoadRunnable implements Runnable {
+	private class LoadRunnable implements Runnable {
 		@Override
 		public void run() {
 			Assets.init(GameActivity.this);
@@ -70,7 +70,7 @@ public class GameActivity extends AppCompatActivity {
 				XmlPullParser xml = getResources().getXml(serverMap);
 				startGame(xml, true);
 
-				PlayerInfo p = game.getPlayers().get(0);
+				PlayerInfo p = game.getPlayers().valueAt(0);
 				p.isHost = true;
 				p.ready = true;
 
@@ -123,8 +123,9 @@ public class GameActivity extends AppCompatActivity {
 		gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener(){
 			@Override
 			public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-				if(game != null)
-					game.onScroll(distanceX, distanceY);
+				if(game == null || (e1.getPointerCount() < 2 && e2.getPointerCount() < 2))
+					return false;
+				game.onScroll(distanceX, distanceY);
 				return true;
 			}
 		});
@@ -139,11 +140,13 @@ public class GameActivity extends AppCompatActivity {
 
 	@Override
 	protected void onDestroy() {
-		super.onStop();
+		super.onDestroy();
 		if(scanResponseThread != null)
 			scanResponseThread.interrupt();
 		if(clientThread != null)
 			clientThread.interrupt();
+		if(serverThread != null)
+			serverThread.interrupt();
 		if(drawThread != null)
 			drawThread.interrupt();
 		if(clientConnection != null){
@@ -157,7 +160,9 @@ public class GameActivity extends AppCompatActivity {
 		if(serverLogicThread != null)
 			serverLogicThread.interrupt();
 		if(game != null && game.getPlayers() != null){
-			for(PlayerInfo p : game.getPlayers()){
+			SparseArray<PlayerInfo> players = game.getPlayers();
+			for(int i = 0; i < players.size(); i++){
+				PlayerInfo p = players.valueAt(i);
 				if(p.clientConnection != null){
 					if(p.clientConnection.thread != null)
 						p.clientConnection.thread.interrupt();
@@ -203,7 +208,10 @@ public class GameActivity extends AppCompatActivity {
 												ByteArrayOutputStream baos = new ByteArrayOutputStream();
 												DataOutputStream dos = new DataOutputStream(baos);
 												dos.writeShort(Networking.IDENTIFIER);
-												new Networking.ServerScanResponse(getResources().getResourceEntryName(serverMap)).write(dos);
+												new Networking.ServerScanResponse(
+													getResources().getResourceEntryName(serverMap),
+													android.os.Build.MODEL
+												).write(dos);
 												byte data[] = baos.toByteArray();
 												DatagramPacket p = new DatagramPacket(data, data.length);
 												p.setAddress(packet.getAddress());
@@ -266,9 +274,10 @@ public class GameActivity extends AppCompatActivity {
 									if(dis.readShort() == Networking.IDENTIFIER){
 										if(dis.readByte() == Networking.MessageType.JOIN){
 											PlayerInfo player = null;
-											ArrayList<PlayerInfo> players = game.getPlayers();
-											synchronized (players) {
-												for (PlayerInfo p : game.getPlayers()) {
+											synchronized (game.getPlayers()) {
+												SparseArray<PlayerInfo> players = game.getPlayers();
+												for(int i = 0; i < players.size(); i++){
+													PlayerInfo p = players.valueAt(i);
 													if (!p.isHost && p.clientConnection == null) {
 														player = p;
 														break;

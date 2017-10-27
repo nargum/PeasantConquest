@@ -90,6 +90,7 @@ public class ArmyEntity extends Entity {
 		}
 	}
 
+	private final int MAX_UNITS = 100;
 	private int armyId;
 	private Paint playerFilter;
 	private List<Entity> entities = new LinkedList<Entity>();
@@ -99,10 +100,11 @@ public class ArmyEntity extends Entity {
 
 		GameLogic.Army army = Game.getGame().gameLogic.armies.get(armyId);
 
-		playerFilter = Game.getGame().getPlayers().get(army.playerId-1).colorFilter;
+		playerFilter = Game.getGame().getPlayers().get(army.playerId).colorFilter;
 
 		Random rand = new Random();
-		for (int ui = 0; ui < (int) army.unitsCount; ui++) {
+		int unitsToCreate = Math.min(MAX_UNITS, (int)army.unitsCount);
+		for (int ui = 0; ui < unitsToCreate; ui++) {
 			Unit u = new Unit();
 			if (ui == 0)
 				u.setPosition(0, 0);
@@ -125,15 +127,30 @@ public class ArmyEntity extends Entity {
 
 	@Override
 	public void draw(Canvas c) {
-		//TODO: Vlajky spolu bojujících armád
 		PointF point = getPosition();
 		if(point == null)
 			return;
 
+		int flagOffset = 1;
+		for(int aIdx = 0; aIdx < armyEntities.size(); aIdx++){
+			if(armyEntities.keyAt(aIdx) == armyId){
+				break;
+			}
+			PointF point2 = armyEntities.valueAt(aIdx).getPosition();
+			if(point2 == null)
+				continue;
+			float distanceX = (point.x - point2.x);
+			distanceX *= distanceX;
+			float distanceY = (point.y - point2.y);
+			distanceY *= distanceY;
+			if(distanceX+distanceY < 0.1)
+				flagOffset++;
+		}
+
 		Bitmap armyFlag = Assets.getBitmap(R.drawable.army_flag);
 		c.drawBitmap(
 			armyFlag,
-			point.x * Tile.TILE_SIZE, (point.y - 0.5f) * Tile.TILE_SIZE - armyFlag.getHeight(),
+			point.x * Tile.TILE_SIZE, (point.y - 0.5f) * Tile.TILE_SIZE - armyFlag.getHeight()*flagOffset,
 			playerFilter
 		);
 		int unitsCount = (int)Game.getGame().gameLogic.armies.get(armyId).unitsCount;
@@ -141,7 +158,7 @@ public class ArmyEntity extends Entity {
 		textPaint.setTextAlign(Paint.Align.CENTER);
 		c.drawText(
 			Integer.toString(unitsCount),
-			(point.x + 0.18f) * Tile.TILE_SIZE, (point.y - 0.55f) * Tile.TILE_SIZE,
+			(point.x + 0.18f) * Tile.TILE_SIZE, (point.y - 0.55f) * Tile.TILE_SIZE - armyFlag.getHeight()*(flagOffset-1),
 			textPaint
 		);
 	}
@@ -155,7 +172,7 @@ public class ArmyEntity extends Entity {
 			entities.clear();
 			return true;
 		} else if((int)army.unitsCount > entities.size()){
-			int unitsToAdd = (int)army.unitsCount - entities.size();
+			int unitsToAdd = Math.min((int)army.unitsCount - entities.size(), MAX_UNITS-entities.size());
 			Random rand = new Random();
 			for(int i = 0; i < unitsToAdd; i++){
 				Unit u = new Unit();
