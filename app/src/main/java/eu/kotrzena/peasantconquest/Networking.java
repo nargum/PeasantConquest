@@ -1,6 +1,7 @@
 package eu.kotrzena.peasantconquest;
 
 import android.util.Log;
+import android.util.SparseArray;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -17,6 +18,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import eu.kotrzena.peasantconquest.game.GameLogic;
+import eu.kotrzena.peasantconquest.game.PlayerInfo;
 
 public class Networking {
 	public static int PORT = 3074;
@@ -31,10 +33,13 @@ public class Networking {
 		static final byte JOIN_ACCEPT = 4;
 		static final byte JOIN_REFUSE = 5;
 		static final byte READY = 6;
-		static final byte UNPAUSE = 7;
-		static final byte MINIMAL_UPDATE = 8;
-		static final byte READY_FOR_UPDATE = 9;
-		static final byte ARMY_COMMAND = 10;
+		static final byte UNREADY = 7;
+		static final byte PAUSE = 8;
+		static final byte UNPAUSE = 9;
+		static final byte MINIMAL_UPDATE = 10;
+		static final byte READY_FOR_UPDATE = 11;
+		static final byte ARMY_COMMAND = 12;
+		static final byte PLAYERS_INFO = 13;
 	}
 	public interface Message {
 		void write(DataOutputStream out) throws IOException;
@@ -68,6 +73,25 @@ public class Networking {
 			out.writeByte(messageType);
 			writeString(out, mapName);
 			writeString(out, phoneName);
+			out.flush();
+		}
+	}
+	public static class Join implements Message {
+		public static final byte messageType = MessageType.JOIN;
+		public String playerName;
+
+		public Join(String playerName){
+			this.playerName = playerName;
+		}
+
+		public Join(DataInputStream in) throws IOException {
+			playerName = readString(in);
+		}
+
+		@Override
+		public void write(DataOutputStream out) throws IOException {
+			out.writeByte(messageType);
+			writeString(out, playerName);
 			out.flush();
 		}
 	}
@@ -198,6 +222,74 @@ public class Networking {
 			out.writeInt(fromNode);
 			out.writeInt(toNode);
 			out.writeFloat(unitsPct);
+			out.flush();
+		}
+	}
+
+	public static class PlayersInfo implements Message {
+		public static final byte messageType = MessageType.PLAYERS_INFO;
+		public SparseArray<PlayerInfo> players;
+		private ByteArrayOutputStream bout;
+
+		public PlayersInfo(SparseArray<PlayerInfo> players) throws IOException {
+			this.players = players;
+			bout = new ByteArrayOutputStream();
+			DataOutputStream out = new DataOutputStream(bout);
+
+			out.writeInt(players.size());
+			for(int i = 0; i < players.size(); i++){
+				PlayerInfo p = players.valueAt(i);
+				out.writeInt(p.id);
+				out.writeBoolean(p.isHost);
+				out.writeBoolean(p.ready);
+				writeString(out, p.playerName);
+				out.writeInt(p.color);
+			}
+		}
+
+		public PlayersInfo(DataInputStream in) throws IOException {
+			players = new SparseArray<PlayerInfo>();
+			int size = in.readInt();
+			for(int i = 0; i < size; i++){
+				int id = in.readInt();
+				boolean host = in.readBoolean();
+				boolean ready = in.readBoolean();
+				String playerName = readString(in);
+				int color = in.readInt();
+
+				PlayerInfo p = new PlayerInfo(id, color);
+				p.isHost = host;
+				p.ready = ready;
+				p.playerName = playerName;
+				players.append(id, p);
+			}
+		}
+
+		public void mergeInto(SparseArray<PlayerInfo> players){
+			for(int i = 0; i <= this.players.size(); i++){
+				PlayerInfo from = this.players.valueAt(i);
+				if(from == null)
+					continue;
+				int pId = this.players.keyAt(i);
+				PlayerInfo to = players.get(pId);
+				if(to == null) {
+					to = new PlayerInfo(from.id, from.color);
+					to.isHost = from.isHost;
+					to.ready = from.ready;
+					to.playerName = from.playerName;
+					players.append(pId, to);
+				} else {
+					to.isHost = from.isHost;
+					to.ready = from.ready;
+					to.playerName = from.playerName;
+				}
+			}
+		}
+
+		@Override
+		public void write(DataOutputStream out) throws IOException {
+			out.writeByte(messageType);
+			out.write(bout.toByteArray());
 			out.flush();
 		}
 	}

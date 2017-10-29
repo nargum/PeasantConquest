@@ -54,7 +54,7 @@ public class JoinActivity extends AppCompatActivity {
 			public View getView(int position, View convertView, @NonNull ViewGroup parent){
 				View row = convertView;
 
-				if(row == null)				{
+				if(row == null)	{
 					//LayoutInflater inflater = (LayoutInflater) JoinActivity.this.getSystemService( JoinActivity.this.LAYOUT_INFLATER_SERVICE );
 					LayoutInflater inflater = getLayoutInflater();
 					row = inflater.inflate(R.layout.join_list_item_layout, parent, false);
@@ -120,6 +120,7 @@ public class JoinActivity extends AppCompatActivity {
 		super.onResume();
 
 		servers.clear();
+		listAdapter.notifyDataSetChanged();
 
 		scanThread = new Thread(){
 			private DatagramSocket server = null;
@@ -141,16 +142,17 @@ public class JoinActivity extends AppCompatActivity {
 									if(dis.readShort() == Networking.IDENTIFIER) {
 										byte messageType = dis.readByte();
 										if (messageType == Networking.MessageType.SERVER_SCAN_RESPONSE) {
-											Networking.ServerScanResponse ssr = new Networking.ServerScanResponse(dis);
-											ServerEntry se = new ServerEntry();
-											se.ipAddress = packet.getAddress();
-											se.map = ssr.mapName;
-											se.phoneName = ssr.phoneName;
-											servers.add(se);
+											final Networking.ServerScanResponse ssr = new Networking.ServerScanResponse(dis);
+
 											JoinActivity.this.runOnUiThread(new Runnable() {
 												@Override
 												public void run() {
-													listAdapter.notifyDataSetChanged();
+												ServerEntry se = new ServerEntry();
+												se.ipAddress = packet.getAddress();
+												se.map = ssr.mapName;
+												se.phoneName = ssr.phoneName;
+												servers.add(se);
+												listAdapter.notifyDataSetChanged();
 												}
 											});
 										}

@@ -1,7 +1,7 @@
 package eu.kotrzena.peasantconquest.game;
 
+import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.PointF;
@@ -11,12 +11,16 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.SeekBar;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Stack;
 
 import eu.kotrzena.peasantconquest.GameActivity;
 import eu.kotrzena.peasantconquest.Networking;
@@ -25,7 +29,8 @@ import eu.kotrzena.peasantconquest.R;
 public class Game {
 	private static final int[] playerColors = new int[]{
 		0xffa6583c,
-		0xff157da8
+		0xff157da8,
+		0xff7915a8
 	};
 	private static Game game = null;
 	private GameActivity activity;
@@ -51,26 +56,8 @@ public class Game {
 	private int motionEventStartNode = -1;
 	private float takeUnitsPct = 0;
 
-	public Game(GameActivity activity){
-		this.activity = activity;
-		Game.game = this;
-		size_x = 5;
-		size_y = 5;
-
-		tiles = new Tile[size_x][size_y];
-
-		playAreaLeft = playAreaTop = 0;
-		playAreaRight = size_x - 1;
-		playAreaBottom = size_y -1;
-
-		for(int x = 0; x < size_x; x++){
-			for(int y = 0; y < size_y; y++){
-				tiles[x][y] = new Tile(x, y, Assets.getBitmap(R.drawable.tile_grass1));
-			}
-		}
-
-		prepareLogic();
-	}
+	public boolean playMusic;
+	public boolean playSoundEffects;
 
 	public Game(GameActivity activity, Tile[][] tiles, List<Entity> entities){
 		this.activity = activity;
@@ -99,6 +86,9 @@ public class Game {
 				}
 			}
 		}
+
+		playMusic = activity.prefs.getBoolean("soundMusic", true);
+		playSoundEffects = activity.prefs.getBoolean("soundEffects", true);
 
 		prepareLogic();
 	}
@@ -166,6 +156,7 @@ public class Game {
 						for(int i = 0; i < node.roads.length; i++)
 							node.roads[i] = -1;
 						node.playerId = tiles[x][y].ownerOnStart;
+						node.unitsCount = tiles[x][y].unitsOnStart;
 						if(node.playerId > 0 && players.get(node.playerId) == null){
 							PlayerInfo pi = new PlayerInfo(node.playerId, playerColors[node.playerId-1]);
 							players.append(node.playerId, pi);
@@ -251,6 +242,21 @@ public class Game {
 		return new Point((int)(x/Tile.TILE_SIZE), (int)(y/Tile.TILE_SIZE));
 	}
 
+	public int getCurrentPlayerId(){
+		if(activity.serverLogicThread != null) {
+			SparseArray<PlayerInfo> players = game.getPlayers();
+			for(int i = 0; i < players.size(); i++){
+				PlayerInfo player = players.valueAt(i);
+				if(player.isHost){
+					return player.id;
+				}
+			}
+		} else if(activity.clientConnection != null) {
+			return activity.clientConnection.playerId;
+		}
+		return -1;
+	}
+
 	public void onTouch(MotionEvent motionEvent){
 		Point p = getTouchTile(motionEvent.getX(), motionEvent.getY());
 		Log.i("Game", "Touch point "+p.toString());
@@ -266,22 +272,14 @@ public class Game {
 				if(motionEventStartNode != -1){
 					if(p.x >= 0 && p.y >= 0 && p.x < size_x && p.y < size_y) {
 						int ni = tiles[p.x][p.y].nodeId;
-						if(ni != -1) {
-							if(activity.serverLogicThread != null) {
-								SparseArray<PlayerInfo> players = game.getPlayers();
-								for(int i = 0; i < players.size(); i++){
-									PlayerInfo player = players.valueAt(i);
-									if(player.isHost){
-										if(players.keyAt(i) == gameLogic.nodes[motionEventStartNode].playerId)
-											gameLogic.sendArmy(motionEventStartNode, ni, takeUnitsPct);
-										break;
-									}
-								}
-							} else if(activity.clientConnection != null) {
-								if(activity.clientConnection.playerId == gameLogic.nodes[motionEventStartNode].playerId)
+						if(ni != -1)
+							if(gameLogic.nodes[motionEventStartNode].playerId == getCurrentPlayerId()) {
+								if (activity.serverLogicThread != null) {
+									gameLogic.sendArmy(motionEventStartNode, ni, takeUnitsPct);
+								} else if (activity.clientConnection != null) {
 									activity.clientConnection.send(new Networking.ArmyCommand(motionEventStartNode, ni, takeUnitsPct));
+								}
 							}
-						}
 					}
 				}
 				motionEventStartNode = -1;
@@ -451,5 +449,75 @@ public class Game {
 			offset.x = activity.gameView.getWidth()-size_x*Tile.TILE_SIZE*scale;
 		if(size_y*Tile.TILE_SIZE*scale + offset.y < activity.gameView.getHeight())
 			offset.y = activity.gameView.getHeight()-size_y*Tile.TILE_SIZE*scale;
+	}
+
+	public void load(DataInputStream dis){
+		try {
+			int nodesLength = dis.readInt();	// Number of nodes
+			for(int ni = 0; ni < nodesLength; ni++){
+				GameLogic.Node node = gameLogic.nodes[ni];
+				node.playerId = dis.readInt();
+				node.unitsCount = dis.readFloat();
+			}
+
+			int armiesLength = dis.readInt();	// Number of armies
+			for(int ai = 0; ai < armiesLength; ai++){
+				GameLogic.Army army = gameLogic.new Army();
+				int armyId = dis.readInt();
+				army.playerId = dis.readInt();
+				army.position = dis.readFloat();
+				army.roadId = dis.readInt();
+				army.backDirection = dis.readBoolean();
+				army.unitsCount = dis.readFloat();
+				int roadsLength = dis.readInt();
+				for(int ri = 0; ri < roadsLength; ri++){
+					army.nextRoadId.add(dis.readInt());
+				}
+				gameLogic.armies.append(armyId, army);
+			}
+
+			gameLogic.nextArmyId = dis.readInt();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void save(String saveName){
+		try{
+			FileOutputStream outputStream = activity.openFileOutput(saveName, Context.MODE_PRIVATE);
+			DataOutputStream dos = new DataOutputStream(outputStream);
+
+			dos.writeInt(activity.serverMap);
+
+			dos.writeInt(gameLogic.nodes.length);	// Number of nodes
+			for(int ni = 0; ni < gameLogic.nodes.length; ni++){
+				GameLogic.Node node = gameLogic.nodes[ni];
+				dos.writeInt(node.playerId);
+				dos.writeFloat(node.unitsCount);
+			}
+
+			dos.writeInt(gameLogic.armies.size());	// Number of armies
+			for(int ai = 0; ai < gameLogic.armies.size(); ai++){
+				GameLogic.Army army = gameLogic.armies.valueAt(ai);
+				dos.writeInt(gameLogic.armies.keyAt(ai));
+				dos.writeInt(army.playerId);
+				dos.writeFloat(army.position);
+				dos.writeInt(army.roadId);
+				dos.writeBoolean(army.backDirection);
+				dos.writeFloat(army.unitsCount);
+				dos.writeInt(army.nextRoadId.size());
+				for(int ri = 0; ri < army.nextRoadId.size(); ri++){
+					dos.writeInt(army.nextRoadId.get(ri));
+				}
+			}
+
+			dos.writeInt(gameLogic.nextArmyId);
+
+			dos.close();
+		} catch (FileNotFoundException e) {
+			Log.e(getClass().getName(), "FileNotFoundException", e);
+		} catch (IOException e) {
+			Log.e(getClass().getName(), "IOException", e);
+		}
 	}
 }

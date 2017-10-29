@@ -34,7 +34,7 @@ public class ArmyEntity extends Entity {
 				return null;
 			return new PointF(
 				position.x + armyPosition.x,
-				position.y + jump*JUMP_HEIGHT + armyPosition.y
+				position.y + armyPosition.y - 0.51f
 			);
 		}
 
@@ -122,7 +122,9 @@ public class ArmyEntity extends Entity {
 		GameLogic.Army a = Game.getGame().gameLogic.armies.get(armyId);
 		if(a == null)
 			return null;
-		return Game.getGame().getArmyPosition(a);
+		PointF pos =Game.getGame().getArmyPosition(a);
+		pos.y += 0.51;
+		return pos;
 	}
 
 	@Override
@@ -130,6 +132,7 @@ public class ArmyEntity extends Entity {
 		PointF point = getPosition();
 		if(point == null)
 			return;
+		point.y -= 0.51;
 
 		int flagOffset = 1;
 		for(int aIdx = 0; aIdx < armyEntities.size(); aIdx++){

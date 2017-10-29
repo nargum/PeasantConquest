@@ -15,6 +15,7 @@ public class PlayerInfo {
 	public ClientConnection clientConnection = null;
 	public boolean ready = false;
 	public boolean readyForUpdate = true;
+	public String playerName = "";
 
 	public PlayerInfo(int id, int color){
 		this.id = id;

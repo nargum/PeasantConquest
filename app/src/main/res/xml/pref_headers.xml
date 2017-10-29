@@ -3,8 +3,16 @@
 	<!-- These settings headers are only used on tablets. -->
 
 	<header
+		android:fragment="eu.kotrzena.peasantconquest.SettingsActivity$GamePreferenceFragment"
+		android:icon="@drawable/ic_games_black_24dp"
+		android:title="@string/pref_header_game"/>
+	<header
 		android:fragment="eu.kotrzena.peasantconquest.SettingsActivity$GraphicsPreferenceFragment"
 		android:icon="@drawable/ic_image_black_24dp"
 		android:title="@string/pref_header_graphics"/>
+	<header
+		android:fragment="eu.kotrzena.peasantconquest.SettingsActivity$SoundPreferenceFragment"
+		android:icon="@drawable/ic_volume_up_black_24dp"
+		android:title="@string/pref_header_sound"/>
 
 </preference-headers>

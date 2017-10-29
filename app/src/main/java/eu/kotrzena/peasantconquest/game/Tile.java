@@ -24,6 +24,7 @@ public class Tile {
 
 	PlayerCity castle = null;
 	int ownerOnStart = -1;
+	float unitsOnStart = 0;
 
 	public Tile(int x, int y, Bitmap texture){
 		this.position = new Point(x, y);

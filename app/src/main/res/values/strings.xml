@@ -1,17 +1,27 @@
 <resources>
-	<string name="app_name">PeasantConquest</string>
-
-	<string name="dummy_button">Dummy Button</string>
-	<string name="dummy_content">DUMMY\nCONTENT</string>
+	<string name="app_name">Peasant Conquest</string>
 
 	<string name="error">Error</string>
 	<string name="ok">OK</string>
 	<string name="map_load_fail">Failed to load map</string>
+	<string name="host">Host</string>
+	<string name="empty_slot">Empty slot</string>
 
 	<string name="start_game">Start Game</string>
 	<string name="join_game">Join Game</string>
 	<string name="settings">Settings</string>
 	<string name="join">Join</string>
+
+	<string name="new_game">New game</string>
+	<string name="load_game">Load game</string>
+	<string name="save_game">Save game</string>
+	<string name="pause_game">Pause game</string>
+	<string name="players">players</string>
+	<string name="game_saved">Game was saved</string>
+
+	<string name="map_mapa_name">Village</string>
+	<string name="map_around_farm_name">Around farm</string>
+	<string name="map_forrest_name">Forrest</string>
 
 	<string name="join_refused_no_empty_slot">Game you are trying to connect to is full.</string>
 	<string name="connection_lost">Connection was lost.</string>
@@ -19,13 +29,21 @@
 
 	<string name="credits">Credits</string>
 	<string name="credits_graphics">Graphics</string>
-	<string name="credits_graphics_by">By Kenney\n
-	License: <a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0 1.0 Universal</a>\n
-	Website: <a href="http://kenney.nl/">kenney.nl</a></string>
+	<string name="credits_graphics_by"><a href="https://kenney.nl/assets/medieval-rts/">Medieval RTS</a> By <a href="https://kenney.nl/">Kenney.nl</a>\nLicense: <a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0 1.0 Universal</a></string>
+	<string name="music_and_sounds">Music and sounds</string>
+	<string name="music_and_sounds_by"><a href="https://opengameart.org/content/meloncholy-town">Meloncholy Town</a> By <a href="https://opengameart.org/users/vwolfdog">VWolfdog</a>\nLicence: <a href="https://creativecommons.org/licenses/by/3.0/">CC-BY 3.0</a>\n\n<a href="https://freesound.org/people/tobyk/sounds/26198/">Medieval Fanfare</a> By <a href="https://freesound.org/people/tobyk/">tobyk</a>\nLicence: <a href="https://creativecommons.org/licenses/by/3.0/">CC-BY 3.0</a>\n\n<a href="https://freesound.org/people/Wagna/sounds/242208/">Failfare</a> By <a href="https://freesound.org/people/Wagna/">Wagna</a>\nLicence: <a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0 1.0 Universal</a></string>
 
 	<!-- Strings related to Settings -->
+	<string name="pref_header_game">Game</string>
+	<string name="pref_game_player_name">Change your player name</string>
+	<string name="pref_game_player_name_summary">If empty, your phone name will be used</string>
+
 	<string name="pref_header_graphics">Graphics</string>
 	<string name="pref_graphics_draw_deco">Draw decorations</string>
 	<string name="pref_graphics_use_hw_acc">Use hardware acceleration</string>
 	<string name="pref_graphics_use_hw_acc_summary">If supported</string>
+
+	<string name="pref_header_sound">Sound</string>
+	<string name="pref_sound_play_music">Play music</string>
+	<string name="pref_sound_play_effects">Play sound effects</string>
 </resources>

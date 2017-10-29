@@ -152,12 +152,12 @@ public class GameLogic {
 							armies.delete(armies.keyAt(j));
 						} else if (army.playerId != army2.playerId) {
 							// Armies fight
-							army2.unitsCount -= ARMY_DAMAGE;
-							move = false;
 							if (army.unitsCount < 1)
 								armies.delete(armies.keyAt(i));
 							if (army2.unitsCount < 1)
 								armies.delete(armies.keyAt(j));
+							army2.unitsCount -= ARMY_DAMAGE;
+							move = false;
 						}
 					}
 				}
@@ -190,8 +190,6 @@ public class GameLogic {
 							armies.remove(armies.keyAt(i));
 						} else {
 							// Attack city
-							army.unitsCount -= ARMY_DAMAGE;
-							targetNode.unitsCount -= ARMY_DAMAGE;
 							if (army.unitsCount < 1)
 								armies.remove(armies.keyAt(i));
 							else if (targetNode.unitsCount < 1) {
@@ -199,6 +197,8 @@ public class GameLogic {
 								targetNode.unitsCount += army.unitsCount;
 								armies.remove(armies.keyAt(i));
 							}
+							army.unitsCount -= ARMY_DAMAGE;
+							targetNode.unitsCount -= ARMY_DAMAGE;
 						}
 					}
 				}

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+			  xmlns:app="http://schemas.android.com/apk/res-auto"
+			  android:layout_width="match_parent"
+			  android:layout_height="wrap_content"
+			  android:paddingBottom="5dp"
+			  android:paddingTop="5dp">
+
+	<ImageView
+		android:id="@+id/imageViewColor"
+		android:layout_width="wrap_content"
+		android:layout_height="match_parent"
+		android:layout_weight="0"
+		android:adjustViewBounds="true"
+		android:paddingLeft="10dp"
+		android:paddingRight="10dp"
+		android:scaleType="center"
+		app:srcCompat="@drawable/circle"/>
+
+	<LinearLayout
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_weight="1"
+		android:orientation="vertical">
+
+		<TextView
+			android:id="@+id/textPlayer"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:text="TextView"
+			android:textAppearance="@style/TextAppearance.AppCompat.Medium"/>
+
+		<TextView
+			android:id="@+id/textDesc"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:text="TextView"
+			android:textAppearance="@style/TextAppearance.AppCompat.Small"/>
+	</LinearLayout>
+
+	<CheckBox
+		android:id="@+id/checkBoxReady"
+		android:layout_width="wrap_content"
+		android:layout_height="match_parent"
+		android:layout_weight="0"
+		android:padding="5dp"/>
+
+</LinearLayout>

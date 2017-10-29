@@ -2,14 +2,17 @@ package eu.kotrzena.peasantconquest;
 
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.media.MediaPlayer;
 import android.os.Build;
 import android.preference.PreferenceManager;
 import android.view.SurfaceHolder;
 
 import junit.runner.Version;
 
+import eu.kotrzena.peasantconquest.game.Assets;
+
 public class DrawThread extends Thread {
-	public static final long FRAME_PERIOD = 1000/30;
+	private static final long FRAME_PERIOD = 1000/30;
 
 	private SurfaceHolder surfaceHolder;
 	private GameActivity activity;
@@ -19,7 +22,7 @@ public class DrawThread extends Thread {
 		setName("_DrawThread");
 		this.surfaceHolder = surfaceHolder;
 		this.activity = activity;
-		hwAccelerated = PreferenceManager.getDefaultSharedPreferences(activity).getBoolean("graphicsHwAcc", true);
+		hwAccelerated = activity.prefs.getBoolean("graphicsHwAcc", true);
 	}
 
 	@Override
@@ -27,8 +30,16 @@ public class DrawThread extends Thread {
 		Paint background = new Paint();
 		background.setARGB(0, 0, 0, 0);
 		long beginTime, sleepTime;
+		MediaPlayer mp = Assets.getBackgroundMusic();
 		while(true){
 			beginTime = System.currentTimeMillis();
+			if(activity != null && activity.game != null && activity.game.playMusic) {
+				if (activity.game.pause && mp.isPlaying()) {
+					mp.pause();
+				} else if (!activity.game.pause && !mp.isPlaying()) {
+					mp.start();
+				}
+			}
 			Canvas canvas;
 			if(hwAccelerated && Build.VERSION.SDK_INT >= 26)
 				canvas = surfaceHolder.lockHardwareCanvas();

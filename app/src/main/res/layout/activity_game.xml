@@ -42,13 +42,26 @@
         android:orientation="vertical">
 
 		<ListView
+			android:id="@+id/playerList"
 			android:layout_width="match_parent"
-			android:layout_height="wrap_content"/>
+			android:layout_height="wrap_content"
+			android:background="#aaffffff"/>
+
+		<Space
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_weight="1"/>
 
 		<ProgressBar
 			android:id="@+id/progressBar"
 			android:layout_width="match_parent"
-			android:layout_height="wrap_content"/>
-    </LinearLayout>
+			android:layout_height="wrap_content"
+			/>
+
+		<Space
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_weight="1"/>
+	</LinearLayout>
 
 </FrameLayout>

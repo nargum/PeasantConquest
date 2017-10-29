@@ -6,6 +6,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Paint;
 import android.graphics.Typeface;
+import android.media.MediaPlayer;
 import android.preference.PreferenceManager;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
@@ -36,77 +37,82 @@ public class Assets {
 	private static Paint textPaint;
 	private static Paint backgroundPaint;
 
-	public static void init(GameActivity context){
-		if(bitmaps.size() > 0)
-			return;
+	private static MediaPlayer backgroundMusic;
+	private static MediaPlayer cityConqueredSound;
+	private static MediaPlayer cityLostSound;
 
+	public static void init(GameActivity context){
 		Assets.context = context;
-		Field[] fields = R.drawable.class.getDeclaredFields();
-		final R.drawable drawableResources = new R.drawable();
-		for (Field f : fields) {
-			try {
-				int res_id = f.getInt(drawableResources);
-				bitmaps.append(res_id, BitmapFactory.decodeResource(context.getResources(), res_id));
-			} catch (IllegalAccessException e) {
-				Log.w("WARN", "Assets: Not found " + f.toString());
-			} catch (IllegalArgumentException e){
-				Log.w("WARN", "Assets: Not primitive field " + f.toString());
+		if(bitmaps.size() == 0) {
+			Field[] fields = R.drawable.class.getDeclaredFields();
+			final R.drawable drawableResources = new R.drawable();
+			for (Field f : fields) {
+				try {
+					int res_id = f.getInt(drawableResources);
+					bitmaps.append(res_id, BitmapFactory.decodeResource(context.getResources(), res_id));
+				} catch (IllegalAccessException e) {
+					Log.w("WARN", "Assets: Not found " + f.toString());
+				} catch (IllegalArgumentException e) {
+					Log.w("WARN", "Assets: Not primitive field " + f.toString());
+				}
 			}
 		}
 
-		XmlPullParser xml = context.getResources().getXml(R.xml.tiles);
+		if(tilesetIds.size() == 0) {
+			XmlPullParser xml = context.getResources().getXml(R.xml.tiles);
 
-		try {
-			int eventType = xml.getEventType();
+			try {
+				int eventType = xml.getEventType();
 
-			int tileId = -1;
-			while(eventType != XmlPullParser.END_DOCUMENT){
-				switch(eventType){
-					case XmlPullParser.START_TAG:
-						if(xml.getName().equals("tile")){
-							tileId = Integer.parseInt(xml.getAttributeValue(null, "id"));
-							while(eventType != XmlPullParser.END_DOCUMENT){
-								eventType = xml.next();
+				int tileId = -1;
+				while (eventType != XmlPullParser.END_DOCUMENT) {
+					switch (eventType) {
+						case XmlPullParser.START_TAG:
+							if (xml.getName().equals("tile")) {
+								tileId = Integer.parseInt(xml.getAttributeValue(null, "id"));
+								while (eventType != XmlPullParser.END_DOCUMENT) {
+									eventType = xml.next();
 
-								if(eventType == XmlPullParser.START_TAG && xml.getName().equals("property")) {
-									if (xml.getAttributeValue(null, "name").equals("resource")) {
-										int resId = context.getResources().getIdentifier(
-											xml.getAttributeValue(null, "value"),
-											"drawable",
-											context.getPackageName()
-										);
-										if(resId != 0) {
-											tilesetIds.append(tileId, resId);
-											int colorResId = context.getResources().getIdentifier(
-												xml.getAttributeValue(null, "value")+"_color",
-												"drawable",
-												context.getPackageName()
+									if (eventType == XmlPullParser.START_TAG && xml.getName().equals("property")) {
+										if (xml.getAttributeValue(null, "name").equals("resource")) {
+											int resId = context.getResources().getIdentifier(
+													xml.getAttributeValue(null, "value"),
+													"drawable",
+													context.getPackageName()
 											);
-											if(colorResId != 0) {
-												Bitmap colorBitmap = bitmaps.get(colorResId);
-												if(colorBitmap != null)
-													colorLayerBitmaps.append(resId, colorBitmap);
+											if (resId != 0) {
+												tilesetIds.append(tileId, resId);
+												int colorResId = context.getResources().getIdentifier(
+														xml.getAttributeValue(null, "value") + "_color",
+														"drawable",
+														context.getPackageName()
+												);
+												if (colorResId != 0) {
+													Bitmap colorBitmap = bitmaps.get(colorResId);
+													if (colorBitmap != null)
+														colorLayerBitmaps.append(resId, colorBitmap);
+												}
 											}
+										} else if (xml.getAttributeValue(null, "name").equals("roads")) {
+											tilesRoads.append(tileId, Byte.parseByte(xml.getAttributeValue(null, "value")));
 										}
-									} else if (xml.getAttributeValue(null, "name").equals("roads")) {
-										tilesRoads.append(tileId, Byte.parseByte(xml.getAttributeValue(null, "value")));
+									} else if (eventType == XmlPullParser.END_TAG && xml.getName().equals("tile")) {
+										break;
 									}
-								} else if(eventType == XmlPullParser.END_TAG && xml.getName().equals("tile")){
-									break;
 								}
 							}
-						}
-						break;
-					case XmlPullParser.END_TAG:
-						tileId = -1;
-						break;
+							break;
+						case XmlPullParser.END_TAG:
+							tileId = -1;
+							break;
+					}
+					eventType = xml.next();
 				}
-				eventType = xml.next();
+			} catch (XmlPullParserException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
-		} catch (XmlPullParserException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
 		}
 
 		kenpixelFont = Typeface.createFromAsset(context.getAssets(), "fonts/kenpixel_mini_square.ttf");
@@ -124,6 +130,19 @@ public class Assets {
 
 		backgroundPaint = new Paint();
 		backgroundPaint.setARGB(255, 39, 174, 96);
+
+		backgroundMusic = MediaPlayer.create(context.getApplicationContext(), R.raw.background_music);
+		backgroundMusic.setLooping(true);
+		cityConqueredSound = MediaPlayer.create(context.getApplicationContext(), R.raw.city_conquered);
+		cityLostSound = MediaPlayer.create(context.getApplicationContext(), R.raw.city_lost);
+
+		/*try {
+			backgroundMusic.prepare();
+			cityConqueredSound.prepare();
+			cityLostSound.prepare();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}*/
 	}
 
 	public static Paint getDebugPaint() {
@@ -214,7 +233,8 @@ public class Assets {
 													int bitmapId = intVal;
 
 													switch(bitmapId){
-														case R.drawable.castle: {
+														case R.drawable.castle:
+														case R.drawable.tower: {
 															PlayerCity e = new PlayerCity();
 															e.setPosition(x + 0.5f, y + 1f);
 															e.texture = getBitmap(bitmapId);
@@ -243,8 +263,7 @@ public class Assets {
 											x /= mapTileSize;
 											y /= mapTileSize;
 											String gidAttr = xml.getAttributeValue(null, "gid");
-											SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-											boolean loadDecorations = prefs.getBoolean("graphicsRenderDecorations", true);
+											boolean loadDecorations = context.prefs.getBoolean("graphicsRenderDecorations", true);
 											if(gidAttr == null){
 												eventType = xml.next();
 												if(eventType == XmlPullParser.END_TAG && xml.getName().equals("objectgroup"))
@@ -254,7 +273,16 @@ public class Assets {
 													if(eventType == XmlPullParser.END_TAG && xml.getName().equals("objectgroup"))
 														break;
 													if(eventType == XmlPullParser.TEXT) {
-														tiles[(int) x][(int) y].ownerOnStart = Integer.parseInt(xml.getText());
+														String text = xml.getText();
+														String[] texts = text.split("\n");
+														try {
+															if (texts.length > 0)
+																tiles[(int) x][(int) y].ownerOnStart = Integer.parseInt(texts[0]);
+														} catch (NumberFormatException e) {}
+														try {
+															if (texts.length > 1)
+																tiles[(int) x][(int) y].unitsOnStart = Float.parseFloat(texts[1]);
+														} catch (NumberFormatException e) {}
 													}
 												}
 											} else if(loadDecorations) {
@@ -317,5 +345,17 @@ public class Assets {
 
 	public static Bitmap getBitmap(String res_id){
 		return getBitmap(context.getResources().getIdentifier(res_id, "drawable", context.getPackageName()));
+	}
+
+	public static MediaPlayer getBackgroundMusic() {
+		return backgroundMusic;
+	}
+
+	public static MediaPlayer getCityConqueredSound() {
+		return cityConqueredSound;
+	}
+
+	public static MediaPlayer getCityLostSound() {
+		return cityLostSound;
 	}
 }

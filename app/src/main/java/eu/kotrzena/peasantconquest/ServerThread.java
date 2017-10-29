@@ -1,7 +1,12 @@
 package eu.kotrzena.peasantconquest;
 
 import android.util.Log;
+import android.util.SparseArray;
+import android.view.View;
+
 import java.io.IOException;
+
+import eu.kotrzena.peasantconquest.game.PlayerInfo;
 
 public class ServerThread extends Thread {
 	private ClientConnection connection;
@@ -19,10 +24,46 @@ public class ServerThread extends Thread {
 			while(!isInterrupted() && !connection.socket.isClosed()) {
 				byte messageType = connection.in.readByte();
 				switch (messageType) {
-					case Networking.MessageType.READY:
-						Log.i("Networking", "Client ready "+connection.address.toString());
-						activity.game.getPlayers().get(connection.playerId).ready = true;
+					case Networking.MessageType.READY: {
+						Log.i("Networking", "Client ready " + connection.address.toString());
+						SparseArray<PlayerInfo> players = activity.game.getPlayers();
+						synchronized (players) {
+							players.get(connection.playerId).ready = true;
+							activity.runOnUiThread(new Runnable() {
+								@Override
+								public void run() {
+									activity.playerListAdapter.notifyDataSetChanged();
+								}
+							});
+							for (int i = 0; i < players.size(); i++) {
+								PlayerInfo p = players.valueAt(i);
+								if (p.clientConnection != null) {
+									p.clientConnection.send(new Networking.PlayersInfo(players));
+								}
+							}
+						}
 						break;
+					}
+					case Networking.MessageType.UNREADY: {
+						Log.i("Networking", "Client unready " + connection.address.toString());
+						SparseArray<PlayerInfo> players = activity.game.getPlayers();
+						synchronized (players) {
+							players.get(connection.playerId).ready = false;
+							activity.runOnUiThread(new Runnable() {
+								@Override
+								public void run() {
+									activity.playerListAdapter.notifyDataSetChanged();
+								}
+							});
+							for (int i = 0; i < players.size(); i++) {
+								PlayerInfo p = players.valueAt(i);
+								if (p.clientConnection != null) {
+									p.clientConnection.send(new Networking.PlayersInfo(players));
+								}
+							}
+							break;
+						}
+					}
 					case Networking.MessageType.READY_FOR_UPDATE:
 						activity.game.getPlayers().get(connection.playerId).readyForUpdate = true;
 						break;
@@ -35,8 +76,34 @@ public class ServerThread extends Thread {
 				}
 			}
 		} catch (IOException e) {
-			Log.e(getClass().getName(), "IOException", e);
-			activity.connectionLost(R.string.connection_lost);
+			//Log.e(getClass().getName(), "IOException", e);
+			//activity.connectionLost(R.string.connection_lost);
+			activity.game.pause = true;
+			SparseArray<PlayerInfo> players = activity.game.getPlayers();
+			PlayerInfo p = players.get(connection.playerId);
+			p.clientConnection = null;
+			p.ready = false;
+			p.playerName = "";
+			activity.runOnUiThread(new Runnable() {
+				@Override
+				public void run() {
+					activity.overlay.setVisibility(View.VISIBLE);
+					activity.playerListAdapter.notifyDataSetChanged();
+				}
+			});
+			try {
+				Networking.SimpleMessage pauseMessage = new Networking.SimpleMessage(Networking.MessageType.PAUSE);
+				Networking.PlayersInfo playersUpdateMessage = new Networking.PlayersInfo(activity.game.getPlayers());
+				for(int i = 0; i < players.size(); i++){
+					p = players.valueAt(i);
+					if(p.clientConnection != null){
+						p.clientConnection.send(pauseMessage);
+						p.clientConnection.send(playersUpdateMessage);
+					}
+				}
+			} catch (IOException e1) {
+				Log.e(getClass().getName(), "IOException", e1);
+			}
 		}
 
 		Log.i("Networking", "Connection to client "+connection.address.toString()+" lost or closed.");

@@ -6,6 +6,7 @@
 	android:layout_width="match_parent"
 	android:layout_height="wrap_content"
 	android:orientation="horizontal"
+	android:padding="8dp"
 	tools:context="eu.kotrzena.peasantconquest.JoinListItemLayout">
 
 	<RelativeLayout
@@ -17,11 +18,11 @@
 			android:id="@+id/textName"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
+			android:layout_centerVertical="true"
 			android:layout_weight="1"
 			android:text="TextView"
 			android:textAlignment="inherit"
-			android:textSize="18sp"
-			android:layout_centerVertical="true"/>
+			android:textSize="18sp"/>
 	</RelativeLayout>
 
 	<LinearLayout

@@ -25,8 +25,7 @@ public class MainActivity extends AppCompatActivity {
 		buttonStartGame.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View view) {
-				Intent i = new Intent(MainActivity.this, GameActivity.class);
-				i.putExtra("type", "server");
+				Intent i = new Intent(MainActivity.this, StartGameActivity.class);
 				startActivity(i);
 			}
 		});
