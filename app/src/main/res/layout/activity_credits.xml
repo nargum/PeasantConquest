@@ -29,11 +29,12 @@
 			app:srcCompat="@drawable/kenney"/>
 
 		<TextView
-			android:id="@+id/textView3"
+			android:id="@+id/textViewCredits1"
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
 			android:layout_weight="1"
 			android:autoLink="all"
+			android:clickable="true"
 			android:text="@string/credits_graphics_by"
 			android:textAppearance="@style/TextAppearance.AppCompat.Medium"/>
 
@@ -47,7 +48,7 @@
 			android:textAppearance="@style/TextAppearance.AppCompat.Title"/>
 
 		<TextView
-			android:id="@+id/textView4"
+			android:id="@+id/textViewCredits2"
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
 			android:layout_weight="1"

@@ -40,6 +40,7 @@ public class Networking {
 		static final byte READY_FOR_UPDATE = 11;
 		static final byte ARMY_COMMAND = 12;
 		static final byte PLAYERS_INFO = 13;
+		static final byte WINNER = 14;
 	}
 	public interface Message {
 		void write(DataOutputStream out) throws IOException;
@@ -290,6 +291,25 @@ public class Networking {
 		public void write(DataOutputStream out) throws IOException {
 			out.writeByte(messageType);
 			out.write(bout.toByteArray());
+			out.flush();
+		}
+	}
+	public static class Winner implements Message {
+		public static int messageType = MessageType.WINNER;
+		public int winnerId;
+
+		public Winner(int winnerId){
+			this.winnerId = winnerId;
+		}
+
+		public Winner(DataInputStream in) throws IOException {
+			winnerId = in.readInt();
+		}
+
+		@Override
+		public void write(DataOutputStream out) throws IOException {
+			out.writeByte(messageType);
+			out.writeInt(winnerId);
 			out.flush();
 		}
 	}

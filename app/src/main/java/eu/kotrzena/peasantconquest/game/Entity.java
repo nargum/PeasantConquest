@@ -7,7 +7,7 @@ import android.graphics.PointF;
 public class Entity {
 	Bitmap texture;
 
-	private final PointF position = new PointF();
+	protected final PointF position = new PointF();
 
 	public Entity(){
 	}

@@ -22,6 +22,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.ListView;
 import android.widget.SeekBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.xmlpull.v1.XmlPullParser;
@@ -60,6 +61,8 @@ public class GameActivity extends AppCompatActivity {
 	public View overlay = null;
 	public ListView playerListView = null;
 	public PlayerListAdapter playerListAdapter = null;
+	public View winnerOverlay = null;
+	public TextView winnerName = null;
 
 	ScaleGestureDetector scaleGestureDetector;
 	GestureDetector gestureDetector;
@@ -67,7 +70,7 @@ public class GameActivity extends AppCompatActivity {
 	public Game game = null;
 	public DrawThread drawThread = null;
 
-	private Thread scanResponseThread = null;
+	Thread scanResponseThread = null;
 	private Thread serverThread = null;
 	public int serverMap = 0;
 	private Thread clientThread = null;
@@ -153,6 +156,8 @@ public class GameActivity extends AppCompatActivity {
 		overlay = findViewById(R.id.overlay);
 		playerListView = (ListView)findViewById(R.id.playerList);
 		playerListView.setAdapter(null);
+		winnerOverlay = findViewById(R.id.winnerOverlay);
+		winnerName = (TextView)findViewById(R.id.winnerName);
 
 		scaleGestureDetector = new ScaleGestureDetector(this, new ScaleGestureDetector.SimpleOnScaleGestureListener(){
 			@Override

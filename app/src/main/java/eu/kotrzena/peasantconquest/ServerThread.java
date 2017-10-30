@@ -84,13 +84,14 @@ public class ServerThread extends Thread {
 			p.clientConnection = null;
 			p.ready = false;
 			p.playerName = "";
-			activity.runOnUiThread(new Runnable() {
-				@Override
-				public void run() {
-					activity.overlay.setVisibility(View.VISIBLE);
-					activity.playerListAdapter.notifyDataSetChanged();
-				}
-			});
+			if(activity.winnerOverlay.getVisibility() != View.VISIBLE)
+				activity.runOnUiThread(new Runnable() {
+					@Override
+					public void run() {
+						activity.overlay.setVisibility(View.VISIBLE);
+						activity.playerListAdapter.notifyDataSetChanged();
+					}
+				});
 			try {
 				Networking.SimpleMessage pauseMessage = new Networking.SimpleMessage(Networking.MessageType.PAUSE);
 				Networking.PlayersInfo playersUpdateMessage = new Networking.PlayersInfo(activity.game.getPlayers());

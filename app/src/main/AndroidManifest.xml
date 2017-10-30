@@ -31,8 +31,6 @@
 			android:noHistory="true"
 			android:label="@string/join_game">
 		</activity>
-		<activity android:name=".JoinListItemLayout">
-		</activity>
 		<activity
 			android:name=".DialogActivity"
 			android:excludeFromRecents="true"

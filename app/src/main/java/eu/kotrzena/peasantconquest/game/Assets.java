@@ -291,7 +291,11 @@ public class Assets {
 												if(intVal == null)
 													continue;
 												int bitmapId = intVal;
-												Entity e = new Entity();
+												Entity e;
+												if(bitmapId == R.drawable.mill)
+													e = new Mill();
+												else
+													e = new Entity();
 												Bitmap bitmap = getBitmap(bitmapId);
 												e.setPosition(x + (((float)bitmap.getWidth())/2)/Tile.TILE_SIZE, y);
 												e.texture = bitmap;

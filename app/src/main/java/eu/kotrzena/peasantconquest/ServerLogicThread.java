@@ -1,5 +1,6 @@
 package eu.kotrzena.peasantconquest;
 
+import android.content.SharedPreferences;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.View;
@@ -54,10 +55,10 @@ public class ServerLogicThread extends Thread {
 							activity.runOnUiThread(new Runnable() {
 								@Override
 								public void run() {
-									if (activity.game != null) {
-										activity.game.pause = false;
-										activity.overlay.setVisibility(View.GONE);
-									}
+								if (activity.game != null) {
+									activity.game.pause = false;
+									activity.overlay.setVisibility(View.GONE);
+								}
 								}
 							});
 						}
@@ -76,8 +77,35 @@ public class ServerLogicThread extends Thread {
 							}
 						}
 						if(winner > 0){
-							//TODO: Winner and stats!
-
+							activity.scanResponseThread.interrupt();
+							for (int i = 0; i < players.size(); i++) {
+								PlayerInfo p = players.valueAt(i);
+								if (p.clientConnection != null) {
+									p.clientConnection.send(new Networking.Winner(winner));
+									Log.i("Networking", "Sending WINNER to " + p.clientConnection.address.toString());
+								}
+							}
+							final String winnerName = players.get(winner).playerName;
+							activity.runOnUiThread(new Runnable() {
+								@Override
+								public void run() {
+									activity.winnerOverlay.setVisibility(View.VISIBLE);
+									activity.winnerName.setText(winnerName);
+								}
+							});
+							if(winner == activity.game.getCurrentPlayerId()){
+								String winMapKey = "map_"+Integer.toString(activity.serverMap)+"_win";
+								int wins = activity.prefs.getInt(winMapKey, 0);
+								SharedPreferences.Editor e = activity.prefs.edit();
+								e.putInt(winMapKey, wins+1);
+								e.apply();
+							} else {
+								String winMapKey = "map_"+Integer.toString(activity.serverMap)+"_lost";
+								int wins = activity.prefs.getInt(winMapKey, 0);
+								SharedPreferences.Editor e = activity.prefs.edit();
+								e.putInt(winMapKey, wins+1);
+								e.apply();
+							}
 							return;
 						}
 

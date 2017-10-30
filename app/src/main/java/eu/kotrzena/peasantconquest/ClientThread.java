@@ -1,5 +1,6 @@
 package eu.kotrzena.peasantconquest;
 
+import android.content.SharedPreferences;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.View;
@@ -60,6 +61,30 @@ public class ClientThread extends Thread {
 								}
 								if(activity.playerListAdapter != null)
 								activity.playerListAdapter.notifyDataSetChanged();
+							}
+						});
+						break;
+					case Networking.MessageType.WINNER:
+						Networking.Winner winner = new Networking.Winner(connection.in);
+						if(winner.winnerId == activity.game.getCurrentPlayerId()){
+							String winMapKey = "map_"+Integer.toString(activity.serverMap)+"_win";
+							int wins = activity.prefs.getInt(winMapKey, 0);
+							SharedPreferences.Editor e = activity.prefs.edit();
+							e.putInt(winMapKey, wins+1);
+							e.apply();
+						} else {
+							String winMapKey = "map_"+Integer.toString(activity.serverMap)+"_lost";
+							int wins = activity.prefs.getInt(winMapKey, 0);
+							SharedPreferences.Editor e = activity.prefs.edit();
+							e.putInt(winMapKey, wins+1);
+							e.apply();
+						}
+						final String winnerName = activity.game.getPlayers().get(winner.winnerId).playerName;
+						activity.runOnUiThread(new Runnable() {
+							@Override
+							public void run() {
+								activity.winnerOverlay.setVisibility(View.VISIBLE);
+								activity.winnerName.setText(winnerName);
 							}
 						});
 						break;

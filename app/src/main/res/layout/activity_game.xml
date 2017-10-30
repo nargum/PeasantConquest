@@ -64,4 +64,39 @@
 			android:layout_weight="1"/>
 	</LinearLayout>
 
+	<RelativeLayout
+		android:id="@+id/winnerOverlay"
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"
+		android:visibility="gone">
+
+		<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_centerInParent="true"
+			android:background="#aaffffff"
+			android:orientation="vertical"
+			android:paddingBottom="5dp"
+			android:paddingTop="5dp">
+
+			<TextView
+				android:id="@+id/textView5"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:layout_weight="1"
+				android:text="@string/winner_is"
+				android:textAlignment="center"
+				android:textAppearance="@style/TextAppearance.AppCompat.Display3"/>
+
+			<TextView
+				android:id="@+id/winnerName"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:layout_weight="1"
+				android:text="TextView"
+				android:textAlignment="center"
+				android:textAppearance="@style/TextAppearance.AppCompat.Display2"/>
+		</LinearLayout>
+	</RelativeLayout>
+
 </FrameLayout>

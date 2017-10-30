@@ -26,6 +26,16 @@
 					android:layout_width="match_parent"
 					android:layout_height="wrap_content"/>
 
+				<TextView
+					android:id="@+id/textViewError"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:paddingTop="5dp"
+					android:text="@string/no_network"
+					android:textAlignment="center"
+					android:textAppearance="@style/TextAppearance.AppCompat.Headline"
+					android:visibility="gone"/>
+
 			</LinearLayout>
 		</ScrollView>
 

@@ -1,6 +1,8 @@
 package eu.kotrzena.peasantconquest;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.TabLayout;
@@ -122,9 +124,12 @@ public class StartGameActivity extends AppCompatActivity {
 					}
 
 					final MapInfo mi = mapInfoList[position];
+					SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
 					((TextView)row.findViewById(R.id.mapName)).setText(mi.mapName);
 					((TextView)row.findViewById(R.id.mapPlayers)).setText(Integer.toString(mi.numberOfPlayers)+" "+getString(R.string.players));
 					((ImageView)row.findViewById(R.id.mapThumb)).setImageResource(mi.thumbId);
+					((TextView)row.findViewById(R.id.gamesWon)).setText(String.format(getString(R.string.games_won), prefs.getInt("map_"+Integer.toString(mi.resId)+"_win", 0)));
+					((TextView)row.findViewById(R.id.gamesLost)).setText(String.format(getString(R.string.games_lost), prefs.getInt("map_"+Integer.toString(mi.resId)+"_lost", 0)));
 
 					return row;
 				}

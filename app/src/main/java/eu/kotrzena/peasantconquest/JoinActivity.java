@@ -39,6 +39,8 @@ public class JoinActivity extends AppCompatActivity {
 	ListView listServer = null;
 	ArrayAdapter<ServerEntry> listAdapter;
 
+	TextView textViewError = null;
+
 	Thread scanThread = null;
 	Thread broadcastThread = null;
 
@@ -79,11 +81,15 @@ public class JoinActivity extends AppCompatActivity {
 				startActivity(intent);
 			}
 		});
+
+		textViewError = (TextView)findViewById(R.id.textViewError);
 	}
 
 	private void startScan(){
+		textViewError.setVisibility(View.GONE);
 		if(broadcastThread != null && !broadcastThread.isInterrupted())
 			broadcastThread.interrupt();
+		final JoinActivity activity = this;
 		broadcastThread = new Thread(){
 			@Override
 			public void run() {
@@ -99,7 +105,12 @@ public class JoinActivity extends AppCompatActivity {
 
 					byte data[] = baos.toByteArray();
 					DatagramPacket p = new DatagramPacket(data, data.length);
-					p.setAddress(Networking.getBroadcastAddress());
+					InetAddress broadcastAddress = Networking.getBroadcastAddress();
+					if(broadcastAddress == null){
+						activity.textViewError.setVisibility(View.VISIBLE);
+						return;
+					}
+					p.setAddress(broadcastAddress);
 					p.setPort(Networking.PORT);
 					broadcast.send(p);
 				} catch (SocketException e) {
